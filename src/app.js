@@ -1,47 +1,53 @@
 
 const express = require('express');
-const http = require('http');
+const cors = require('cors');
+const app = express();
+const port = process.env.PORT || 4200;
+const http = require('http').Server(app);
 const EventEmitter = require('events');
-const socketIo = require('socket.io');
+const io = require('socket.io')(http, {
+    cors: {
+        origin: "http://localhost:3000",
+        methods: ["GET", "POST"],
+        allowedHeaders: ["my-custom-header"],
+        credentials: true
+    }
+});
 
 const eventEmitter = new EventEmitter();
 
 const chatbot = require("./chatbot/chatbot")(eventEmitter);
 
-const ticketList = [];
+let ticketList = [];
 
 eventEmitter.on('newTicket', ticketDetail => {
     console.log("newTicket listen from app")
-    console.log(ticketDetail);
     ticketList.push(ticketDetail);
-
-    socket.emit('message', ticketList);
 });
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
-const port = process.env.PORT || 4200;
-
 io.on('connection', (socket) => {
-    console.log('A user connected');
+    setInterval(() => { // Generate some random data
+        socket.emit('ticketList', ticketList);
+    }, 5000);
 
-    // Define custom events here
-    socket.on('chat message', (message) => {
-        console.log(`Message: ${message}`);
-    });
+
+    socket.on("sendMessage", (contact, message) => {
+        chatbotEmitter.emit("sendMessage", { contact, message });
+    })
+
+    socket.on("resetState", () => {
+        ticketList = [];
+        eventEmitter.emit("resetState");
+    })
 
     socket.on('disconnect', () => {
         console.log('A user disconnected');
     });
 });
 
-// Define a basic route
-app.get('/', (req, res) => {
-    res.send(ticketList)
-})
+app.use(cors())
 
 // Start the server
-app.listen(port, () => {
+http.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });

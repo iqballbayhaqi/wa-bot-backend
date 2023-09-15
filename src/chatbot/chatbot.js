@@ -17,6 +17,11 @@ client.on('message', handleMessage);
 
 client.initialize();
 
+chatbotEmitter.on("sendMessage", (contact, message) => {
+    console.log(`Sent to : ${contact} message : ${message}`)
+    client.sendMessage(contact, message);
+})
+
 function handleClientReady() {
     console.log('Client is ready!');
 }
@@ -44,8 +49,8 @@ function handleMessage(msg) {
         handleNIKVerification(msg, contact)
     } else if (contact.currentState === 2) {
         handleComplaintMessage(msg, contact)
-    } else {
-        msg.reply('Terimakasih atas masukannya, Silahkan tunggu beberapa menit lagi untuk mengirimkan laporan lainnya');
+    } else if (contact.currentState === 3) {
+        msg.reply('Terimakasih atas masukannya, Silahkan tunggu balasan dari agent yang bersangkutan');
     }
 }
 
@@ -84,11 +89,10 @@ function handleComplaintMessage(msg, contact) {
 
     msg.reply(botMessage);
     addToChatHistory(contact, msg.body, botMessage);
-    contact.currentState = 0;
+    contact.currentState = 3;
     contact.issuedDepartment = predictedDepartment;
     contact.ticketNumber = ticketNumber;
 
-    console.log(contact)
     chatbotEmitter.emit("newTicket", contact)
 }
 
@@ -107,9 +111,12 @@ function getRandomNumber() {
 
 module.exports = function (eventEmitter) {
     chatbotEmitter.on('newTicket', data => {
-        console.log("new ticket emit from chatbot");
         eventEmitter.emit('newTicket', data);
     });
+
+    eventEmitter.on("resetState", () => {
+        contacts.clear();
+    })
 };
 
 
