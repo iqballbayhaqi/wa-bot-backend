@@ -1,19 +1,20 @@
 {
-  "name": "whatsapp-bot-test",
+  "name": "wa-bot-backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
   },
-  "author": "yazid",
+  "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "natural": "^6.7.2",
-    "qrcode-terminal": "^0.12.0",
-    "socket.io": "^4.7.2",
-    "whatsapp-web.js": "https://github.com/Julzk/whatsapp-web.js/tarball/jkr_hotfix_7"
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
