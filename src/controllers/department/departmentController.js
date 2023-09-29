@@ -1,31 +1,24 @@
-const pool = require("../../../db");
+const HTTP_STATUS = require("../../constants/httpStatus");
+const departmentService = require("../../services/department/departmentService");
 
-const getDepartment = (req, res) => {
-  pool.query("SELECT * FROM department", (err, result) => {
-    if (err) {
-      console.log(err);
-      throw err;
-    } else {
-      res.status(200).json(result.rows);
-    }
-  });
+const getDepartment = async (req, res) => {
+  try {
+    const departments = await departmentService.getAllDepartments();
+    res.status(HTTP_STATUS.OK).json(departments);
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send("Internal Server Error");
+  }
 };
 
-const addDepartment = (req, res) => {
+const addDepartment = async (req, res) => {
   const { name, code } = req.body;
 
-  pool.query(
-    "INSERT INTO department (department_name, department_code) VALUES ($1, $2)",
-    [name, code],
-    (err, result) => {
-      if (err) {
-        console.log(err);
-        throw err;
-      } else {
-        res.status(201).send("Success");
-      }
-    }
-  );
+  try {
+    await departmentService.createDepartment(name, code);
+    res.status(HTTP_STATUS.CREATED).send("Success");
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send("Internal Server Error");
+  }
 };
 
 module.exports = { getDepartment, addDepartment };
