@@ -1,6 +1,7 @@
 // services/categoryService.js
 const categoryDao = require("../../dao/category/categoryDao");
 const departmentDao = require("../../dao/department/departmentDao");
+const httpError = require("http-errors");
 
 const getAllCategories = async () => {
   try {
@@ -18,7 +19,7 @@ const createCategory = async (name, code) => {
     if (isValid) {
       await categoryDao.addCategory(name, code);
     } else {
-      throw new Error("400");
+      throw httpError.BadRequest("Department not found");
     }
   } catch (error) {
     throw error;
