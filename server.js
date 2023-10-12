@@ -1,4 +1,5 @@
 const httpError = require("http-errors");
+require('dotenv').config();
 
 const express = require("express");
 const app = express();
@@ -8,15 +9,13 @@ const errorHandler = require('./src/middlewares/error-handler');
 
 app.use(express.json());
 
-// const departmentRouter = require("./src/routes/department/departmentRoute");
-// const categoryRouter = require("./src/routes/category/categoryRoute");
-// const agentRouter = require("./src/routes/agent/agentRoute");
+const departmentRouter = require("./src/routes/department.router")
+const categoryRouter = require("./src/routes/category.router")
+const userRouter = require("./src/routes/user.router")
 
-// app.use("/api/v1/", departmentRouter);
-// app.use("/api/v1/", categoryRouter);
-// app.use("/api/v1/", agentRouter);
-
-app.use("/users", require("./src/controllers/user.controller"))
+app.use("/api/v1", departmentRouter)
+app.use("/api/v1", categoryRouter)
+app.use("/api/v1", userRouter)
 
 app.use(async (req, res, next) => {
   next(httpError.NotFound());

@@ -1,66 +1,70 @@
-const bcrypt = require('bcryptjs');
+const UserModel = require('../models/users.model')
+const DepartmentModel = require('../models/department.model')
+const bcrypt = require('bcrypt');
 
-const db = require('../helpers/db');
+const UserService = {
+    createUser: async (userData) => {
+        try {
+            const department = await DepartmentModel.findDepartmentByCode(userData.departmentCode)
+            if (!department) {
+                const error = new Error('Department not found');
+                error.statusCode = 404;
+                throw error;
+            }
 
-module.exports = {
-    getAll,
-    getById,
-    create,
-    update,
-    delete: _delete
-};
+            const user = await UserModel.findUserByNik(userData.nik)
+            if (user) {
+                const error = new Error('User already exists');
+                error.statusCode = 409;
+                throw error;
+            }
 
-async function getAll() {
-    return await db.User.findAll();
-}
+            userData.hashPassword = await bcrypt.hash(userData.password, 10);
+            delete userData.password;
 
-async function getById(id) {
-    return await getUser(id);
-}
+            const newUserId = UserModel.createUser(userData)
+            return newUserId
+        } catch (err) {
+            console.error('Error in UserService.createUser:', err)
+            throw err
+        }
+    },
 
-async function create(params) {
-    // validate
-    if (await db.User.findOne({ where: { email: params.email } })) {
-        throw 'Email "' + params.email + '" is already registered';
+    findUserByNik: async (nik) => {
+        try {
+            const user = await UserModel.findUserByNik(nik)
+            if (!user) {
+                const error = new Error('User not found');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            return user
+        } catch (err) {
+            console.error('Error in UserService.findUserByNik:', err)
+            throw err;
+        }
+    },
+
+    isUserRegistered: async (nik) => {
+        try {
+            const user = await UserModel.findUserByNik(nik)
+            return user ? true : false
+        } catch (err) {
+            console.error('Error in UserService.isNikExist:', err)
+            throw err
+        }
+    },
+
+    isAuthentic: async (password, hashPassword) => {
+        try {
+            const isAuthentic = await bcrypt.compare(password, hashPassword)
+            return isAuthentic;
+        } catch (err) {
+            console.error('Error in UserService.isAuthentic:', err)
+            throw err
+        }
     }
-
-    const user = new db.User(params);
-
-    // hash password
-    user.passwordHash = await bcrypt.hash(params.password, 10);
-
-    // save user
-    await user.save();
 }
 
-async function update(id, params) {
-    const user = await getUser(id);
-
-    // validate
-    const emailChanged = params.email && user.email !== params.email;
-    if (emailChanged && await db.User.findOne({ where: { email: params.email } })) {
-        throw 'Email "' + params.email + '" is already registered';
-    }
-
-    // hash password if it was entered
-    if (params.password) {
-        params.passwordHash = await bcrypt.hash(params.password, 10);
-    }
-
-    // copy params to user and save
-    Object.assign(user, params);
-    await user.save();
-}
-
-async function _delete(id) {
-    const user = await getUser(id);
-    await user.destroy();
-}
-
-// helper functions
-
-async function getUser(id) {
-    const user = await db.User.findByPk(id);
-    if (!user) throw 'User not found';
-    return user;
-}
+module.exports = UserService;

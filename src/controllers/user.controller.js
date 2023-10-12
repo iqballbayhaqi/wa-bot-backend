@@ -1,77 +1,73 @@
-const express = require('express');
-const router = express.Router();
+const httpResponse = require('../helpers/httpResponse');
+const UserService = require('../services/user.service')
 const Joi = require('joi');
+const validate = require('../middlewares/validate-request');
+const jwt = require('jsonwebtoken');
 
-const validateRequest = require('../middlewares/validate-request');
-const Role = require('../helpers/role');
-const userService = require('../services/user.service');
+const UserController = {
+    register: async (req, res) => {
+        try {
+            const { nik, name, password, departmentCode } = req.body;
+            const userData = { nik, name, password, departmentCode };
 
-// routes
+            await validate(createUsersSchema, userData);
 
-router.get('/', getAll);
-router.get('/:id', getById);
-router.post('/', createSchema, create);
-router.put('/:id', updateSchema, update);
-router.delete('/:id', _delete);
+            const newUserId = await UserService.createUser(userData);
 
-module.exports = router;
+            return httpResponse.created(res, { newUserId });
+        } catch (err) {
+            if (err.isJoi) {
+                return httpResponse.badrequest(res, err.message);
+            }
+            if (err.statusCode === 409) {
+                return httpResponse.conflict(res, err.message);
+            }
+            if (err.statusCode === 404) {
+                return httpResponse.notfound(res, err.message);
+            }
+            return httpResponse.error(res, "Internal Server Error");
+        }
+    },
 
-// route functions
+    login: async (req, res) => {
+        try {
+            const { nik, password } = req.body;
 
-function getAll(req, res, next) {
-    userService.getAll()
-        .then(users => res.json(users))
-        .catch(next);
+            // Check if user is registered
+            const user = await UserService.findUserByNik(nik);
+            if (!user) {
+                return httpResponse.unauthorized(res, 'Nik not found or wrong password');
+            }
+
+            // Check if password is correct
+            const isAuthentic = await UserService.isAuthentic(password, user.hashPassword);
+            if (!isAuthentic) {
+                return httpResponse.unauthorized(res, 'Nik not found or wrong password');
+            }
+
+            const userData = {
+                nik: user.nik,
+                name: user.name,
+                departmentCode: user.departmentCode,
+                role: user.role
+            }
+
+            // Generate token
+            const token = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1h' });
+
+            return httpResponse.success(res, { token });
+        } catch (err) {
+            console.log(err)
+            return httpResponse.error(res, "Internal Server Error");
+        }
+    }
 }
 
-function getById(req, res, next) {
-    userService.getById(req.params.id)
-        .then(user => res.json(user))
-        .catch(next);
-}
+const createUsersSchema = Joi.object({
+    nik: Joi.string().required(),
+    name: Joi.string().required(),
+    password: Joi.string().required(),
+    departmentCode: Joi.string().required()
+});
 
-function create(req, res, next) {
-    userService.create(req.body)
-        .then(() => res.json({ message: 'User created' }))
-        .catch(next);
-}
-
-function update(req, res, next) {
-    userService.update(req.params.id, req.body)
-        .then(() => res.json({ message: 'User updated' }))
-        .catch(next);
-}
-
-function _delete(req, res, next) {
-    userService.delete(req.params.id)
-        .then(() => res.json({ message: 'User deleted' }))
-        .catch(next);
-}
-
-// schema functions
-
-function createSchema(req, res, next) {
-    const schema = Joi.object({
-        title: Joi.string().required(),
-        firstName: Joi.string().required(),
-        lastName: Joi.string().required(),
-        role: Joi.string().valid(Role.Admin, Role.User).required(),
-        email: Joi.string().email().required(),
-        password: Joi.string().min(6).required(),
-        confirmPassword: Joi.string().valid(Joi.ref('password')).required()
-    });
-    validateRequest(req, next, schema);
-}
-
-function updateSchema(req, res, next) {
-    const schema = Joi.object({
-        title: Joi.string().empty(''),
-        firstName: Joi.string().empty(''),
-        lastName: Joi.string().empty(''),
-        role: Joi.string().valid(Role.Admin, Role.User).empty(''),
-        email: Joi.string().email().empty(''),
-        password: Joi.string().min(6).empty(''),
-        confirmPassword: Joi.string().valid(Joi.ref('password')).empty('')
-    }).with('password', 'confirmPassword');
-    validateRequest(req, next, schema);
-}
+module.exports = UserController;
