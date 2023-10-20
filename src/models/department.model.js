@@ -15,7 +15,6 @@ const DepartmentModel = {
 				createdBy: row.createdBy,
 				lastModifiedTime: row.lastModifiedTime,
 				lastModifiedBy: row.lastModifiedBy,
-				rowVersion: row.rowVersion,
 			}));
 			return departments;
 		} catch (err) {
@@ -34,10 +33,11 @@ const DepartmentModel = {
 
 			request.input('name', sql.VarChar, departmentData.name);
 			request.input('code', sql.VarChar, departmentData.code);
+			request.input('createdBy', sql.Int, departmentData.createdBy);
 
 			const result = await request.query(`
-				INSERT INTO Department (name, code)
-				VALUES (@name, @code);
+				INSERT INTO Department (name, code, createdBy)
+				VALUES (@name, @code, @createdBy);
 				SELECT SCOPE_IDENTITY() AS newDepartmentId;
 			`);
 
@@ -60,12 +60,15 @@ const DepartmentModel = {
 			request.input('name', sql.VarChar, departmentData.name);
 			request.input('code', sql.VarChar, departmentData.code);
 			request.input('id', sql.Int, departmentData.id);
+			request.input('modifyStatus', sql.VarChar, 'U')
+			request.input('lastModifiedBy', sql.Int, departmentData.lastModifiedBy);
 
 			const result = await request.query(`
 				UPDATE Department
 				SET name = @name,
 					code = @code,
-					modifyStatus = 'U'
+					modifyStatus = @modifyStatus,
+					lastModifiedBy = @lastModifiedBy
 				WHERE id = @id
 			`);
 
@@ -78,17 +81,20 @@ const DepartmentModel = {
 		}
 	},
 
-	deleteDepartment: async (departmentId) => {
+	deleteDepartment: async (departmentData) => {
 		try {
 			await sql.connect(config);
 
 			const request = new sql.Request();
 
-			request.input('id', sql.Int, departmentId);
+			request.input('id', sql.Int, departmentData.id);
+			request.input('modifyStatus', sql.VarChar, 'D');
+			request.input('lastModifiedBy', sql.Int, departmentData.lastModifiedBy);
 
 			const result = await request.query(`
 				UPDATE Department
-				SET modifyStatus = 'D'
+				SET modifyStatus = @modifyStatus,
+					lastModifiedBy = @lastModifiedBy
 				WHERE id = @id
 			`);
 
@@ -101,7 +107,7 @@ const DepartmentModel = {
 		}
 	},
 
-	findDepartmentByCode: async (departmentCode) => {
+	getDepartmentByCode: async (departmentCode) => {
 		try {
 			await sql.connect(config);
 
@@ -112,6 +118,7 @@ const DepartmentModel = {
 			const result = await request.query(`
 				SELECT * FROM Department
 				WHERE code = @code
+				AND modifyStatus != 'D'
 			`);
 
 			return result.recordset[0];

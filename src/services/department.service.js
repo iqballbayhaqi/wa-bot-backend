@@ -13,6 +13,14 @@ const DepartmentService = {
 
     addDepartment: async (departmentData) => {
         try {
+            const department = await DepartmentModel.getDepartmentByCode(departmentData.code);
+
+            if (!!department) {
+                const error = new Error('Department already exists');
+                error.statusCode = 409;
+                throw error;
+            }
+
             const newDepartmentId = await DepartmentModel.addDepartment(departmentData);
             return newDepartmentId;
         } catch (err) {
@@ -23,7 +31,6 @@ const DepartmentService = {
 
     updateDepartment: async (departmentData) => {
         try {
-            //find if department exists
             const department = await DepartmentModel.getDepartmentById(departmentData.id);
 
             if (!department) {
@@ -40,9 +47,9 @@ const DepartmentService = {
         }
     },
 
-    deleteDepartment: async (departmentId) => {
+    deleteDepartment: async (departmentData) => {
         try {
-            const department = await DepartmentModel.getDepartmentById(departmentId);
+            const department = await DepartmentModel.getDepartmentById(departmentData.id);
 
             if (!department) {
                 const error = new Error('Department not found');
@@ -50,7 +57,7 @@ const DepartmentService = {
                 throw error;
             }
 
-            const result = await DepartmentModel.deleteDepartment(departmentId);
+            const result = await DepartmentModel.deleteDepartment(departmentData);
             return result;
         } catch (err) {
             console.error('Error in DepartmentService.deleteDepartment:', err);

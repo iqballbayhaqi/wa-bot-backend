@@ -5,13 +5,6 @@ const bcrypt = require('bcrypt');
 const UserService = {
     createUser: async (userData) => {
         try {
-            const department = await DepartmentModel.findDepartmentByCode(userData.departmentCode)
-            if (!department) {
-                const error = new Error('Department not found');
-                error.statusCode = 404;
-                throw error;
-            }
-
             const user = await UserModel.findUserByNik(userData.nik)
             if (user) {
                 const error = new Error('User already exists');
@@ -38,10 +31,9 @@ const UserService = {
                 error.statusCode = 404;
                 throw error;
             }
-
             return user
+
         } catch (err) {
-            console.error('Error in UserService.findUserByNik:', err)
             throw err;
         }
     },

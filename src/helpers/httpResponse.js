@@ -1,42 +1,50 @@
 
 const httpResponse = {
     success: (res, data) => {
-        res.status(200).json({
+        return res.status(200).json({
             status: 'success',
             data,
         });
     },
 
     created: (res, message) => {
-        res.status(201).json({
+        return res.status(201).json({
             status: 'success',
             message,
         });
     },
 
     notfound: (res, message) => {
-        res.status(404).json({
+        return res.status(404).json({
             status: 'error',
             message,
         });
     },
 
     badrequest: (res, message) => {
-        res.status(400).json({
+        return res.status(400).json({
             status: 'error',
             message,
         });
     },
 
     unauthorized: (res, message) => {
-        res.status(401).json({
+        return res.status(401).json({
             status: 'error',
             message,
         });
     },
 
     error: (res, message = "Internal Server Error") => {
-        res.status(500).json({
+        return res.status(500).json({
+            status: 'error',
+            message,
+        });
+    },
+
+    //add conflict
+    conflict: (res, message) => {
+        return res.status(409).json({
             status: 'error',
             message,
         });

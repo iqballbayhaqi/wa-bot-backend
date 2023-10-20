@@ -1,4 +1,5 @@
 const DepartmentService = require('../services/department.service');
+const getTokenUserId = require('../helpers/getTokenUserId');
 
 const Joi = require('joi');
 const validate = require('../middlewares/validate-request');
@@ -19,15 +20,19 @@ const DepartmentController = {
         try {
             const { name, code } = req.body;
 
-            const departmentData = { name, code };
-            await validate(createDepartmentSchema, departmentData);
+            const createdBy = getTokenUserId(req);
 
+            const departmentData = { name, code, createdBy };
+            await validate(createDepartmentSchema, departmentData);
             await DepartmentService.addDepartment(departmentData);
 
-            res.status(201).send({ newDepartmentId });
+            return httpResponse.success(res, "Department added successfully");
         } catch (err) {
             if (err.isJoi) {
                 return httpResponse.badrequest(res, err.message);
+            }
+            if (err.statusCode === 409) {
+                return httpResponse.conflict(res, err.message);
             }
             return httpResponse.error(res, "Internal Server Error");
         }
@@ -36,8 +41,9 @@ const DepartmentController = {
     updateDepartment: async (req, res) => {
         try {
             const { id, name, code } = req.body;
+            const lastModifiedBy = getTokenUserId(req);
 
-            const departmentData = { id, name, code };
+            const departmentData = { id, name, code, lastModifiedBy };
             await validate(updateDepartmentSchema, departmentData);
 
             const result = await DepartmentService.updateDepartment(departmentData);
@@ -57,11 +63,12 @@ const DepartmentController = {
     deleteDepartment: async (req, res) => {
         try {
             const { departmentId } = req.params;
+            const lastModifiedBy = getTokenUserId(req);
 
-            const departmentData = { id: departmentId };
+            const departmentData = { id: departmentId, lastModifiedBy };
             await validate(deleteDepartmentSchema, departmentData);
 
-            const result = await DepartmentService.deleteDepartment(departmentId);
+            const result = await DepartmentService.deleteDepartment(departmentData);
 
             return httpResponse.success(res, result);
         } catch (err) {
@@ -79,6 +86,7 @@ const DepartmentController = {
 const createDepartmentSchema = Joi.object({
     name: Joi.string().required(),
     code: Joi.string().required(),
+    createdBy: Joi.number().required(),
 });
 
 const updateDepartmentSchema = Joi.object({

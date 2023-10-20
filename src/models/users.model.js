@@ -12,12 +12,11 @@ const UserModel = {
             request.input('nik', sql.VarChar, userData.nik);
             request.input('name', sql.VarChar, userData.name);
             request.input('hashPassword', sql.VarChar, userData.hashPassword);
-            request.input('departmentCode', sql.VarChar, userData.departmentCode);
             request.input('role', sql.VarChar, role.AGENT)
 
             const result = await request.query(`
                 INSERT INTO [User] (nik, name, hashPassword, departmentCode, role)
-                VALUES (@nik, @name, @hashPassword, @departmentCode, @role);
+                VALUES (@nik, @name, @hashPassword, @role);
                 SELECT SCOPE_IDENTITY() AS newUserId;
             `);
             return result.recordset[0].newUserId;

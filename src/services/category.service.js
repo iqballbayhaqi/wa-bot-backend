@@ -16,35 +16,59 @@ const CategoryService = {
 
     addCategory: async (categoryData) => {
         try {
-            //Check first if departmentCode exists in Department table
-            const department = await DepartmentModel.findDepartmentByCode(categoryData.departmentCode);
+            const department = await DepartmentModel.getDepartmentByCode(categoryData.departmentCode);
             if (!department) {
-                throw new Error('Department does not exist');
+                const error = new Error("Department not found");
+                error.statusCode = 404;
+                throw error;
             }
             const newCategoryId = await CategoryModel.addCategory(categoryData);
             return newCategoryId;
         } catch (err) {
-            console.error('Error in CategoryService.addCategory:', err);
             throw err;
         }
     },
 
     updateCategory: async (categoryData) => {
         try {
+            //find if category exists
+            const category = await CategoryModel.getCategoryById(categoryData.id);
+
+            if (!category) {
+                const error = new Error('Category not found');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            //Check first if departmentCode exists in Department table
+            const department = await DepartmentModel.getDepartmentByCode(categoryData.departmentCode);
+            if (!department) {
+                const error = new Error("Department not found");
+                error.statusCode = 404;
+                throw error;
+            }
+
             const result = await CategoryModel.updateCategory(categoryData);
             return result;
         } catch (err) {
-            console.error('Error in CategoryService.updateCategory:', err);
             throw err;
         }
     },
 
-    deleteCategory: async (categoryId) => {
+    deleteCategory: async (categoryData) => {
         try {
-            const result = await CategoryModel.deleteCategory(categoryId);
+            console.log(categoryData)
+            const category = await CategoryModel.getCategoryById(categoryData.id);
+
+            if (!category) {
+                const error = new Error('Category not found');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            const result = await CategoryModel.deleteCategory(categoryData);
             return result;
         } catch (err) {
-            console.error('Error in CategoryService.deleteCategory:', err);
             throw err;
         }
     },

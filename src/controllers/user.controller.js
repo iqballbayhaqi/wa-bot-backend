@@ -4,13 +4,27 @@ const Joi = require('joi');
 const validate = require('../middlewares/validate-request');
 const jwt = require('jsonwebtoken');
 
+const createUsersSchema = Joi.object({
+    nik: Joi.string().required(),
+    name: Joi.string().required(),
+    password: Joi.string().required(),
+    departmentCode: Joi.string().required()
+});
+
 const UserController = {
     register: async (req, res) => {
         try {
             const { nik, name, password, departmentCode } = req.body;
             const userData = { nik, name, password, departmentCode };
 
+            // Validate user input, trigger joi error if not valid
             await validate(createUsersSchema, userData);
+
+            const isRegistered = await UserService.isUserRegistered(nik);
+
+            if (isRegistered) {
+                return httpResponse.conflict(res, 'User already exists');
+            }
 
             const newUserId = await UserService.createUser(userData);
 
@@ -39,6 +53,7 @@ const UserController = {
                 return httpResponse.unauthorized(res, 'Nik not found or wrong password');
             }
 
+
             // Check if password is correct
             const isAuthentic = await UserService.isAuthentic(password, user.hashPassword);
             if (!isAuthentic) {
@@ -46,6 +61,7 @@ const UserController = {
             }
 
             const userData = {
+                id: user.id,
                 nik: user.nik,
                 name: user.name,
                 departmentCode: user.departmentCode,
@@ -57,17 +73,20 @@ const UserController = {
 
             return httpResponse.success(res, { token });
         } catch (err) {
-            console.log(err)
+            if (err.isJoi) {
+                return httpResponse.badrequest(res, err.message);
+            }
+            if (err.statusCode === 404) {
+                return httpResponse.notfound(res, err.message);
+            }
+            if (err.statusCode === 401) {
+                return httpResponse.unauthorized(res, err.message);
+            }
             return httpResponse.error(res, "Internal Server Error");
         }
     }
 }
 
-const createUsersSchema = Joi.object({
-    nik: Joi.string().required(),
-    name: Joi.string().required(),
-    password: Joi.string().required(),
-    departmentCode: Joi.string().required()
-});
+
 
 module.exports = UserController;

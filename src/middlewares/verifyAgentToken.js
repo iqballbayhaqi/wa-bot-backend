@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const role = require('../helpers/role');
 
-function verifyToken(req, res, next) {
+function verifyAgentToken(req, res, next) {
     let token = req.headers.authorization;
 
     if (!token || !token.startsWith('Bearer ')) {
@@ -11,11 +11,13 @@ function verifyToken(req, res, next) {
     token = token.split(' ')[1];
 
     jwt.verify(token, process.env.PUBLIC_JWT_SECRET, (err, decoded) => {
+        const isAuthorized = decoded.role === role.AGENT || decoded.role === role.SUPER_ADMIN
+
         if (err) {
             return res.status(401).json({ message: 'Invalid token' });
         }
 
-        if (decoded.role !== role.AGENT) {
+        if (!isAuthorized) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
@@ -24,4 +26,4 @@ function verifyToken(req, res, next) {
     });
 }
 
-module.exports = verifyToken; 
+module.exports = verifyAgentToken; 
