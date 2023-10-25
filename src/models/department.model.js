@@ -141,6 +141,7 @@ const DepartmentModel = {
 			const result = await request.query(`
 				SELECT * FROM Department
 				WHERE id = @id
+				AND modifyStatus != 'D'
 			`);
 
 			return result.recordset[0];

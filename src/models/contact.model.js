@@ -10,6 +10,7 @@ const ContactModel = {
             const request = new sql.Request();
 
             request.input('phoneNumber', sql.VarChar, contactData.phoneNumber);
+            request.input('hasActiveTicket', sql.Bit, false);
 
             const result = await request.query(`
                 INSERT INTO Contact (phoneNumber)

@@ -4,9 +4,9 @@ const MessageService = require('../services/message.service')
 const MessageController = {
     sendMessage: async (req, res) => {
         try {
-            const { to, from, body, StatusCallback } = req.body;
+            const { to, msg } = req.body;
 
-            await MessageService.sendMessage(to, from, body, StatusCallback);
+            await MessageService.sendMessage(to, msg);
 
             return httpResponse.success(res, { message: 'Message sent' });
         } catch (err) {

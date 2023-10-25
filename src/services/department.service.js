@@ -64,6 +64,27 @@ const DepartmentService = {
             throw err;
         }
     },
+
+    getDepartmentByCode: async (code) => {
+        try {
+            const department = await DepartmentModel.getDepartmentByCode(code);
+            return department;
+        } catch (err) {
+            console.error('Error in DepartmentService.getDepartmentByCode:', err);
+            throw err;
+        }
+    },
+
+    getDepartmentById: async (departmentId) => {
+        try {
+            const department = await DepartmentModel.getDepartmentById(departmentId);
+            return department;
+        } catch (err) {
+            console.error('Error in DepartmentService.getDepartmentById:', err);
+            throw err;
+        }
+    }
+
 };
 
 module.exports = DepartmentService;

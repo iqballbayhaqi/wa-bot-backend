@@ -72,6 +72,15 @@ const CategoryService = {
             throw err;
         }
     },
+
+    getCategoryById: async (categoryId) => {
+        try {
+            const category = await CategoryModel.getCategoryById(categoryId);
+            return category;
+        } catch (err) {
+            throw err;
+        }
+    }
 };
 
 

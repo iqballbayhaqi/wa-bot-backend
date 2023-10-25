@@ -86,7 +86,82 @@ const TicketService = {
             console.error('Error in TicketService.updateTicketChatHistory:', err);
             throw err;
         }
-    }
+    },
+
+    updateTicketChatState: async (ticketId, chatState) => {
+        try {
+            await TicketModel.updateTicketChatState(ticketId, chatState);
+        } catch (err) {
+            console.error('Error in TicketService.updateTicketChatState:', err);
+            throw err;
+        }
+    },
+
+    updateTicketIdentity: async (ticketId, identity) => {
+        try {
+            await TicketModel.updateTicketIdentity(ticketId, identity);
+        } catch (err) {
+            console.error('Error in TicketService.updateTicketIdentity:', err);
+            throw err;
+        }
+    },
+
+    moveTicket: async (ticketId, departmentId, categoryId, lastModifiedBy) => {
+        try {
+            await TicketModel.moveTicket(ticketId, departmentId, categoryId, lastModifiedBy);
+        } catch (err) {
+            console.error('Error in TicketService.moveTicket:', err);
+            throw err;
+        }
+    },
+
+    updateTicketStatus: async (ticketId, status) => {
+        try {
+            await TicketModel.updateTicketStatus(ticketId, status);
+        } catch (err) {
+            console.error('Error in TicketService.updateTicketStatus:', err);
+            throw err;
+        }
+    },
+
+    updateTicketExpiration: async (ticketId, expiryTime, hasExtended) => {
+        try {
+            await TicketModel.updateTicketExpiration(ticketId, expiryTime, hasExtended);
+        } catch (err) {
+            console.error('Error in TicketService.updateTicketExpiration:', err);
+            throw err;
+        }
+    },
+
+    getExpiredTickets: async () => {
+        try {
+            const tickets = await TicketModel.getExpiredTickets();
+            return tickets;
+        } catch (err) {
+            console.error('Error in TicketService.getExpiredTickets:', err);
+            throw err;
+        }
+    },
+
+    extendExpiredTicket: async (ticketId, expiryTime) => {
+        try {
+            await TicketModel.extendExpiredTicket(ticketId, expiryTime);
+        } catch (err) {
+            console.error('Error in TicketService.extendExpiredTicket:', err);
+            throw err;
+        }
+    },
+
+    generateTicketNumber: async () => {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+
+        const numberOfTickets = await TicketModel.getNumberOfTicketsByDate(date);
+        const numberOfTicketsFixed = (numberOfTickets + 1).toString().padStart(5, '6');
+        return `#${year}${month}${day}-${numberOfTicketsFixed}`;
+    },
 
 
 };

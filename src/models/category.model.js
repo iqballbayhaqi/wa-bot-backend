@@ -123,6 +123,7 @@ const CategoryModel = {
             const result = await request.query(`
                 SELECT * FROM Category
                 WHERE id = @id
+                AND modifyStatus != 'D'
             `);
 
             return result.recordset[0];
