@@ -420,6 +420,30 @@ const TicketModel = {
         } finally {
             sql.close();
         }
+    },
+
+    getContactWithExpiredTicket: async () => {
+        try {
+            await sql.connect(config);
+
+            const result = await sql.query(`
+                SELECT phoneNumber FROM Ticket
+                WHERE expiryTime < GETDATE()
+                AND modifyStatus != 'D'
+                AND status != 'CLOSED'
+            `);
+
+            return result.recordset.map((ticket) => {
+                return {
+                    phoneNumber: ticket.phoneNumber
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            throw err;
+        } finally {
+            sql.close();
+        }
     }
 
 };

@@ -152,6 +152,16 @@ const TicketService = {
         }
     },
 
+    getContactWithExpiredTicket: async () => {
+        try {
+            const contacts = await TicketModel.getContactWithExpiredTicket();
+            return contacts;
+        } catch (err) {
+            console.error('Error in TicketService.getContactWithExpiredTicket:', err);
+            throw err;
+        }
+    },
+
     generateTicketNumber: async () => {
         const date = new Date();
         const year = date.getFullYear();

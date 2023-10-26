@@ -21,7 +21,7 @@ const ticketRouter = require("./src/routes/ticket.router")
 const questionRouter = require("./src/routes/question.router")
 const webhookRouter = require("./src/routes/webhook.router");
 const TicketService = require("./src/services/ticket.service");
-const TICKET_STATUS = require("./src/helpers/ticketStatus");
+const MessageService = require("./src/services/message.service");
 
 app.use("/api/v1", departmentRouter)
 app.use("/api/v1", categoryRouter)
@@ -47,20 +47,16 @@ app.use((err, req, res, next) => {
 
 app.use(errorHandler)
 
-cron.schedule("* * * * * ", async function () {
-  console.log("running a task every minute");
-  const expiredTickets = await TicketService.getExpiredTickets();
+// Run task every 10 minute
+cron.schedule("*/10 * * * *", async function () {
+  console.log("running a task every 10 minute");
+  const expiredContacts = await TicketService.getContactWithExpiredTicket();
 
-  for (let i = 0; i < expiredTickets.length; i++) {
-    const ticket = expiredTickets[i];
-    if (ticket.hasExtended && ticket.status === TICKET_STATUS.PENDING) {
-      await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
-    } else {
-      await TicketService.extendExpiredTicket(ticket.id, ticket.expiryTime + 60 * 1000);
-    }
+  for (let i = 0; i < expiredContacts.length; i++) {
+    const contact = expiredContacts[i];
+    await MessageService.sendMessage(contact.phoneNumber, `Apakah masalah anda sudah diselesaikan oleh agent kami ?`);
   }
 
-  console.log(expiredTickets)
 });
 
 app.listen(port, () => {

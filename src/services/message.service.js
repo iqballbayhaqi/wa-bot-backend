@@ -8,16 +8,24 @@ const MESSAGE_TYPE = 'text';
 
 const MessageService = {
     sendMessage: async (to, msg) => {
-        axios.post('https://core.maxchat.id/wanasawit-subur-lestari/api/messages', {
-            "to": to,
-            "type": MESSAGE_TYPE,
-            "text": msg,
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + process.env.PUBLIC_MAXCHAT_TOKEN
-            },
-        })
+        // create a error handler for this
+        try {
+            const response = await
+                axios.post('https://core.maxchat.id/wanasawit-subur-lestari/api/messages', {
+                    "to": to,
+                    "type": MESSAGE_TYPE,
+                    "text": msg,
+                    "useTyping": false,
+                    "skipBusy": true
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + process.env.PUBLIC_MAXCHAT_TOKEN
+                    },
+                })
+        } catch (error) {
+            console.log(error)
+        }
     },
 
     selfMessageHandler: async (chatHistory) => {
@@ -61,19 +69,21 @@ const MessageService = {
             ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
             await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
         } else {
-            const ticketNumber = await TicketService.generateTicketNumber();
+            if (chatHistory.text) {
+                const ticketNumber = await TicketService.generateTicketNumber();
 
-            await TicketService.createTicket({
-                phoneNumber: chatHistory.from,
-                chatHistory: JSON.stringify([chatHistory]),
-                ticketNumber: ticketNumber,
-                issue: chatHistory.text
-            })
-            // update contact hasActiveTicket to true
-            await ContactService.updateContactHasActiveTicket(chatHistory.from, true);
+                await TicketService.createTicket({
+                    phoneNumber: chatHistory.from,
+                    chatHistory: JSON.stringify([chatHistory]),
+                    ticketNumber: ticketNumber,
+                    issue: chatHistory.text
+                })
+                // update contact hasActiveTicket to true
+                await ContactService.updateContactHasActiveTicket(chatHistory.from, true);
 
-            ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
-            await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
+                ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
+                await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
+            }
         }
 
 
@@ -90,22 +100,25 @@ const MessageService = {
                 await TicketService.updateTicketChatState(ticket.id, 2);
                 break;
             case 2:
-                if (chatHistory.text.toLowerCase() === 'ya') {
-                    await MessageService.sendMessage(chatHistory.from, 'Silahkan info data anda: Nama/Afdeling/Unit Usaha (PT)');
-                    await TicketService.updateTicketChatState(ticket.id, 3);
-                } else {
-                    await MessageService.sendMessage(chatHistory.from, 'Apakah anda karyawan Best Agro International? [Ya/Tidak]');
+                if (chatHistory.text) {
+                    if (chatHistory.text.toLowerCase() === 'ya') {
+                        await MessageService.sendMessage(chatHistory.from, 'Silahkan info data anda: Nama/Afdeling/Unit Usaha (PT)');
+                        await TicketService.updateTicketChatState(ticket.id, 3);
+                    } else {
+                        await MessageService.sendMessage(chatHistory.from, 'Apakah anda karyawan Best Agro International? [Ya/Tidak]');
+                    }
                 }
                 break;
             case 3:
                 const pattern = /^[a-zA-Z0-9\s]+\/[a-zA-Z0-9\s]+\/[a-zA-Z0-9\s]+$/;
-                if (pattern.test(chatHistory.text)) {
-                    // await MessageService.sendMessage(chatHistory.from, 'Terima kasih, data anda telah kami terima');
-                    const [name, afdeling, unit] = chatHistory.text.split('/').map(item => item.trim());
-                    await TicketService.updateTicketIdentity(ticket.id, { name, afdeling, unit });
-                    await TicketService.updateTicketChatState(ticket.id, 4);
-                } else {
-                    await MessageService.sendMessage(chatHistory.from, 'Format data yang anda masukkan salah. Silahkan masukkan data dengan format: Nama/Afdeling/Unit Usaha (PT)');
+                if (chatHistory.text) {
+                    if (pattern.test(chatHistory.text)) {
+                        const [name, afdeling, unit] = chatHistory.text.split('/').map(item => item.trim());
+                        await TicketService.updateTicketIdentity(ticket.id, { name, afdeling, unit });
+                        await TicketService.updateTicketChatState(ticket.id, 4);
+                    } else {
+                        await MessageService.sendMessage(chatHistory.from, 'Format data yang anda masukkan salah. Silahkan masukkan data dengan format: Nama/Afdeling/Unit Usaha (PT)');
+                    }
                 }
                 break;
 
@@ -114,16 +127,37 @@ const MessageService = {
                     if (chatHistory.text.toLowerCase() === "sudah") {
                         await MessageService.sendMessage(chatHistory.from, 'Terimakasih atas tanggapan anda. Mohon memberikan nilai kepuasan anda terhadap pelayanan kami');
                         await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
+                        await ContactService.updateContactHasActiveTicket(chatHistory.from, false);
                     }
                     else if (chatHistory.text.toLowerCase() === "belum") {
-                        await MessageService.sendMessage(chatHistory.from, 'Silahkan tunggu konfirmasi dari kami');
-                        await TicketService.updateTicketChatState(ticket.id, 7);
+                        if (ticket.hasExtended) {
+                            await MessageService.sendMessage(chatHistory.from, 'Maaf tiket anda tidak bisa kami proses dan dianggap belum terselesaikan');
+                            await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
+                        } else {
+                            await TicketService.extendExpiredTicket(ticket.id, ticket.expiryTime + 14 * 24 * 60 * 60 * 1000);
+                            await MessageService.sendMessage(chatHistory.from, 'Silahkan tunggu konfirmasi dari kami, tiket complain anda diperpanjang selama 14 hari');
+                        }
                     }
                     else {
                         await MessageService.sendMessage(chatHistory.from, 'Tolong masukkan informasi dengan benar');
                     }
                 }
                 break;
+            case 7:
+                if (chatHistory.text) {
+                    if (chatHistory.text.toLowerCase() === "sudah") {
+                        await MessageService.sendMessage(chatHistory.from, 'Terimakasih atas tanggapan anda. Mohon memberikan nilai kepuasan anda terhadap pelayanan kami');
+                        await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
+                        await ContactService.updateContactHasActiveTicket(chatHistory.from, false);
+                    }
+                    else if (chatHistory.text.toLowerCase() === "belum") {
+                        await TicketService.updateTicketChatState(ticket.id, 5);
+                        await MessageService.sendMessage(chatHistory.from, 'Silahkan informasikan kendala anda');
+                    }
+                    else {
+                        await MessageService.sendMessage(chatHistory.from, 'Tolong masukkan informasi dengan benar');
+                    }
+                }
 
             default:
                 break;
@@ -132,15 +166,12 @@ const MessageService = {
     },
 
     processOutgoingMessage: async (contact, chatHistory, ticket) => {
-        console.log(chatHistory)
-        // Make sure this doesnt include responsing from broadcast
-
         switch (ticket.chatState) {
             case 4:
                 const faqList = await QuestionService.getAllQuestion();
 
                 if (chatHistory.text) {
-                    const faq = await faqList.find(item => item.question.toLowerCase() === chatHistory.text.toLowerCase());
+                    const faq = faqList.find(item => item.question.toLowerCase() === chatHistory.text.toLowerCase());
 
                     if (faq && faq.forState === 4) {
                         await MessageService.sendMessage(chatHistory.to, `Nomor tiket pengaduan anda adalah #${ticket.ticketNumber}. Silahkan tunggu konfirmasi paling lama dalam waktu 14 hari.`);
@@ -153,11 +184,13 @@ const MessageService = {
                 }
                 break;
             case 5:
-                if (chatHistory.text === "apakah masalah anda sudah diselesaikan oleh agent kami ?") {
-                    await TicketService.updateTicketChatState(ticket.id, 6);
-                } else {
-                    await TicketService.updateTicketChatState(ticket.id, 7);
-                    await MessageService.sendMessage(chatHistory.to, `Apakah solusi kami menyelesaikan permasalahan anda? [Sudah/Belum]`);
+                if (chatHistory.text) {
+                    if (chatHistory.text === "Apakah masalah anda sudah diselesaikan oleh agent kami ?") {
+                        await TicketService.updateTicketChatState(ticket.id, 6);
+                    }
+                    if (chatHistory.text === "Apakah solusi kami menyelesaikan permasalahan anda? [Sudah/Belum]") {
+                        await TicketService.updateTicketChatState(ticket.id, 7);
+                    }
                 }
         }
     }
