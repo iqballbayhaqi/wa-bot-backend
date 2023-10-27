@@ -7,4 +7,9 @@
         port: 1433,
         trustServerCertificate: true,
     },
+    pool: {
+        max: 10,
+        min: 0,
+        idleTimeoutMillis: 30000
+    }
 }
