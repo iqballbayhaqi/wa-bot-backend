@@ -1,5 +1,5 @@
 const express = require('express');
-const WebhookController = require('../controllers/webhook.controller'); // Adjust the path as needed
+const { WebhookController } = require('../controllers/webhook.controller'); // Adjust the path as needed
 
 const router = express.Router();
 

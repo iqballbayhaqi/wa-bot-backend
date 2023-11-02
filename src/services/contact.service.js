@@ -11,6 +11,25 @@ const ContactService = {
         }
     },
 
+    getAllEmployeeContact: async () => {
+        try {
+            const contacts = await ContactModel.getAllEmployeeContact();
+            return contacts;
+        } catch (err) {
+            console.error('Error in ContactService.getAllEmployeeContact:', err);
+            throw err;
+        }
+    },
+
+    updateContactEmploymentStatus: async (phoneNumber, isEmployee) => {
+        try {
+            await ContactModel.updateContactEmploymentStatus(phoneNumber, isEmployee);
+        } catch (err) {
+            console.error('Error in ContactService.updateContactEmploymentStatus:', err);
+            throw err;
+        }
+    },
+
     findContactByPhoneNumber: async (phoneNumber) => {
         try {
             const contact = await ContactModel.findContactByPhoneNumber(phoneNumber);

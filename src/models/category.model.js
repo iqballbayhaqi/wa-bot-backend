@@ -1,12 +1,15 @@
 const sql = require('mssql');
 const config = require('../../config/db.config')
 
+const pool = new sql.ConnectionPool(config);
+
 const CategoryModel = {
     getAllCategory: async () => {
         try {
-            await sql.connect(config);
+            await pool.connect();
+            const request = pool.request();
 
-            const result = await sql.query(`
+            const result = await request.query(`
                 SELECT * FROM Category
                 WHERE modifyStatus != 'D'
             `);
@@ -27,15 +30,14 @@ const CategoryModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     addCategory: async (categoryData) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('name', sql.VarChar, categoryData.name);
             request.input('departmentCode', sql.VarChar, categoryData.departmentCode);
@@ -52,15 +54,14 @@ const CategoryModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateCategory: async (categoryData) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             // Bind parameters to the request object
             request.input('name', sql.VarChar, categoryData.name);
@@ -82,15 +83,14 @@ const CategoryModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     deleteCategory: async (categoryData) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, categoryData.id);
             request.input('modifyStatus', sql.VarChar, 'D');
@@ -108,15 +108,14 @@ const CategoryModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getCategoryById: async (categoryId) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, categoryId);
 
@@ -131,7 +130,7 @@ const CategoryModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     }
 

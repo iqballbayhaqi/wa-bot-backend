@@ -2,12 +2,13 @@ const sql = require('mssql');
 const config = require('../../config/db.config');
 const { getCurrentDateTime } = require('../helpers/time');
 
+const pool = new sql.ConnectionPool(config);
+
 const ContactModel = {
     createContact: async (contactData) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, contactData.phoneNumber);
             request.input('hasActiveTicket', sql.Bit, false);
@@ -21,15 +22,29 @@ const ContactModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
+        }
+    },
+
+    getAllEmployeeContact: async () => {
+        try {
+            await pool.connect();
+            const request = pool.request();
+
+            const result = await request.query(`
+                SELECT phoneNumber FROM Contact
+                WHERE isEmployee = 1 AND modifyStatus != 'D'
+            `);
+
+            return result.recordset;
+        } catch (err) {
         }
     },
 
     findContactByPhoneNumber: async (phoneNumber) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
 
@@ -43,15 +58,14 @@ const ContactModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getContactChatHistory: async (phoneNumber) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
 
@@ -65,15 +79,14 @@ const ContactModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateContactChatHistory: async (phoneNumber, chatHistory) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
             request.input('chatHistory', sql.Text, chatHistory);
@@ -88,15 +101,14 @@ const ContactModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateContactHasActiveTicket: async (phoneNumber, hasActiveTicket) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
             request.input('hasActiveTicket', sql.Bit, hasActiveTicket);
@@ -110,7 +122,28 @@ const ContactModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
+        }
+    },
+
+    updateContactEmploymentStatus: async (phoneNumber, isEmployee) => {
+        try {
+            await pool.connect();
+            const request = pool.request();
+
+            request.input('phoneNumber', sql.VarChar, phoneNumber);
+            request.input('isEmployee', sql.Bit, isEmployee);
+
+            const result = await request.query(`
+                UPDATE Contact
+                SET isEmployee = @isEmployee
+                WHERE phoneNumber = @phoneNumber
+            `);
+        } catch (err) {
+            console.error(err);
+            throw err;
+        } finally {
+            pool.close();
         }
     }
 

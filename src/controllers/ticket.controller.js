@@ -17,6 +17,22 @@ const TicketController = {
         }
     },
 
+    getTicketById: async (req, res) => {
+        try {
+            const { id } = req.params;
+
+            const ticket = await TicketService.getTicketById(id);
+
+            if (!ticket) {
+                return httpResponse.notfound(res, "Ticket not found");
+            }
+
+            return httpResponse.success(res, ticket);
+        } catch (err) {
+            return httpResponse.error(res, "Internal Server Error");
+        }
+    },
+
     moveTicket: async (req, res) => {
         try {
             const { id, departmentId, categoryId } = req.body;

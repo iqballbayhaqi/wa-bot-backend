@@ -65,6 +65,11 @@ const TicketService = {
 
             const index = jsonChat.findIndex(chat => chat.id === chatHistory.id);
             if (index !== -1) {
+                if (chatHistory.status === "pending") {
+                    console.log("PENDING MESSAGE IS PROCESSED")
+                    chatHistory.deliveredTime = chatHistory.time;
+                    delete chatHistory.time;
+                }
                 if (chatHistory.status === "delivered") {
                     chatHistory.deliveredTime = chatHistory.time;
                     delete chatHistory.time;
@@ -74,14 +79,14 @@ const TicketService = {
                     delete chatHistory.time;
                 }
 
-                jsonChat[index] = chatHistory;
+                jsonChat[index] = { ...jsonChat[index], ...chatHistory };
             } else {
                 jsonChat.push(chatHistory);
             }
 
             const newChatHistory = JSON.stringify(jsonChat);
 
-            await TicketModel.updateTicketChatHistory(ticketId, newChatHistory);
+            await TicketModel.updateTicketChatHistory(ticketId, newChatHistory, chatHistory.status);
         } catch (err) {
             console.error('Error in TicketService.updateTicketChatHistory:', err);
             throw err;
@@ -162,6 +167,26 @@ const TicketService = {
         }
     },
 
+    getActiveTicketByDepartment: async (departmentId) => {
+        try {
+            const tickets = await TicketModel.getActiveTicketByDepartment(departmentId);
+            return tickets;
+        } catch (err) {
+            console.error('Error in TicketService.getActiveTicketByDepartment:', err);
+            throw err;
+        }
+    },
+
+    getActiveTicketByCategory: async (categoryId) => {
+        try {
+            const tickets = await TicketModel.getActiveTicketByCategory(categoryId);
+            return tickets;
+        } catch (err) {
+            console.error('Error in TicketService.getActiveTicketByCategory:', err);
+            throw err;
+        }
+    },
+
     generateTicketNumber: async () => {
         const date = new Date();
         const year = date.getFullYear();
@@ -169,7 +194,7 @@ const TicketService = {
         const day = date.getDate();
 
         const numberOfTickets = await TicketModel.getNumberOfTicketsByDate(date);
-        const numberOfTicketsFixed = (numberOfTickets + 1).toString().padStart(5, '6');
+        const numberOfTicketsFixed = (numberOfTickets + 1).toString().padStart(5, '0');
         return `#${year}${month}${day}-${numberOfTicketsFixed}`;
     },
 

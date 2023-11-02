@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const role = require('../helpers/role');
 
 function verifyAgentToken(req, res, next) {
+    // log the origins of the request
+    console.log(req.headers.origin)
     let token = req.headers.authorization;
 
     if (!token || !token.startsWith('Bearer ')) {

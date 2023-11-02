@@ -1,12 +1,13 @@
 const sql = require('mssql');
 const config = require('../../config/db.config');
 
+const pool = new sql.ConnectionPool(config);
+
 const QuestionModel = {
     getAllQuestion: async () => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             const result = await request.query(`
                 SELECT question, forState FROM Question
@@ -17,7 +18,7 @@ const QuestionModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     }
 

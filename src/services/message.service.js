@@ -3,28 +3,55 @@ const ContactService = require('./contact.service');
 const TicketService = require('./ticket.service');
 const QuestionService = require('./question.service');
 const TICKET_STATUS = require('../helpers/ticketStatus');
+const eventEmitter = require('../event/event');
 
 const MESSAGE_TYPE = 'text';
 
 const MessageService = {
     sendMessage: async (to, msg) => {
-        // create a error handler for this
         try {
-            const response = await
-                axios.post('https://core.maxchat.id/wanasawit-subur-lestari/api/messages', {
-                    "to": to,
-                    "type": MESSAGE_TYPE,
-                    "text": msg,
-                    "useTyping": false,
-                    "skipBusy": true
-                }, {
+            const busyResponse = await axios.get('https://core.maxchat.id/wanasawit-subur-lestari/api/system/busy',
+                {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + process.env.PUBLIC_MAXCHAT_TOKEN
-                    },
-                })
+                    }
+                }
+            )
+
+            const isBusy = await busyResponse.data.busy;
+
+            if (busyResponse.status === 200) {
+                if (!isBusy) {
+                    const response = await
+                        axios.post('https://core.maxchat.id/wanasawit-subur-lestari/api/messages', {
+                            "to": to,
+                            "type": MESSAGE_TYPE,
+                            "text": msg,
+                            "useTyping": false,
+                        }, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + process.env.PUBLIC_MAXCHAT_TOKEN
+                            },
+                        })
+
+                    const chatHistory = { ...response.data, text: msg, fromMe: true, to }
+                    await MessageService.selfMessageHandler(chatHistory)
+                } else {
+                    console.log("Failed to send message, retrying ...")
+                    setTimeout(async () => {
+                        await MessageService.sendMessage(to, msg);
+                    }, 300);
+                }
+            }
+
         } catch (error) {
-            console.log(error)
+            if (error.response.status === 503) {
+                setTimeout(async () => {
+                    await MessageService.sendMessage(to, msg);
+                }, 300);
+            }
         }
     },
 
@@ -45,18 +72,18 @@ const MessageService = {
             return;
         }
 
-        await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
-
-        await MessageService.processOutgoingMessage(contact, chatHistory, ticket);
-        await ContactService.updateContactChatHistory(chatHistory.to, chatHistory);
+        if (chatHistory.id) {
+            eventEmitter.emit("callback", chatHistory)
+            await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
+            await MessageService.processOutgoingMessage(contact, chatHistory, ticket);
+            await ContactService.updateContactChatHistory(chatHistory.to, chatHistory);
+        }
     },
 
     receiveMessageHandler: async (chatHistory) => {
-        //TODO : check if contact exist
         let contact = await ContactService.findContactByPhoneNumber(chatHistory.from);
         let ticket;
 
-        //TODO : if not exist, create new contact
         if (!contact) {
             await ContactService.createContact({
                 phoneNumber: chatHistory.from
@@ -65,35 +92,36 @@ const MessageService = {
 
         contact = await ContactService.findContactByPhoneNumber(chatHistory.from);
 
-        if (contact.hasActiveTicket) {
-            ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
-            await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
-        } else {
-            if (chatHistory.text) {
-                const ticketNumber = await TicketService.generateTicketNumber();
-
-                await TicketService.createTicket({
-                    phoneNumber: chatHistory.from,
-                    chatHistory: JSON.stringify([chatHistory]),
-                    ticketNumber: ticketNumber,
-                    issue: chatHistory.text
-                })
-                // update contact hasActiveTicket to true
-                await ContactService.updateContactHasActiveTicket(chatHistory.from, true);
-
+        if (contact.isEmployee === null || contact.isEmployee === true) {
+            if (contact.hasActiveTicket) {
                 ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
                 await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
+            } else {
+                if (chatHistory.text) {
+                    const ticketNumber = await TicketService.generateTicketNumber();
+
+                    await TicketService.createTicket({
+                        phoneNumber: chatHistory.from,
+                        chatHistory: JSON.stringify([chatHistory]),
+                        ticketNumber: ticketNumber,
+                        issue: chatHistory.text
+                    })
+                    // update contact hasActiveTicket to true
+                    await ContactService.updateContactHasActiveTicket(chatHistory.from, true);
+
+                    ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
+                    await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
+                }
             }
+
+
+            await MessageService.processIncomingMessage(contact, chatHistory, ticket);
+            await ContactService.updateContactChatHistory(chatHistory.from, chatHistory);
         }
-
-
-        await MessageService.processIncomingMessage(contact, chatHistory, ticket);
-        await ContactService.updateContactChatHistory(chatHistory.from, chatHistory);
 
     },
 
     processIncomingMessage: async (contact, chatHistory, ticket) => {
-        console.log(chatHistory)
         switch (ticket.chatState) {
             case 1:
                 await MessageService.sendMessage(chatHistory.from, 'Apakah anda karyawan Best Agro International? [Ya/Tidak]');
@@ -102,10 +130,12 @@ const MessageService = {
             case 2:
                 if (chatHistory.text) {
                     if (chatHistory.text.toLowerCase() === 'ya') {
+                        await ContactService.updateContactEmploymentStatus(chatHistory.from, true);
                         await MessageService.sendMessage(chatHistory.from, 'Silahkan info data anda: Nama/Afdeling/Unit Usaha (PT)');
                         await TicketService.updateTicketChatState(ticket.id, 3);
                     } else {
-                        await MessageService.sendMessage(chatHistory.from, 'Apakah anda karyawan Best Agro International? [Ya/Tidak]');
+                        await ContactService.updateContactEmploymentStatus(chatHistory.from, false);
+                        await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
                     }
                 }
                 break;
@@ -146,7 +176,7 @@ const MessageService = {
             case 7:
                 if (chatHistory.text) {
                     if (chatHistory.text.toLowerCase() === "sudah") {
-                        await MessageService.sendMessage(chatHistory.from, 'Terimakasih atas tanggapan anda. Mohon memberikan nilai kepuasan anda terhadap pelayanan kami');
+                        await MessageService.sendMessage(chatHistory.from, `Baik tiket anda dengan nomor ${ticket.ticketNumber} sudah ditutup. silahkan hubungi layanan ini kembali jika ada pengaduan lainnya. Terimakasih`);
                         await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
                         await ContactService.updateContactHasActiveTicket(chatHistory.from, false);
                     }
@@ -174,7 +204,7 @@ const MessageService = {
                     const faq = faqList.find(item => item.question.toLowerCase() === chatHistory.text.toLowerCase());
 
                     if (faq && faq.forState === 4) {
-                        await MessageService.sendMessage(chatHistory.to, `Nomor tiket pengaduan anda adalah #${ticket.ticketNumber}. Silahkan tunggu konfirmasi paling lama dalam waktu 14 hari.`);
+                        await MessageService.sendMessage(chatHistory.to, `Nomor tiket pengaduan anda adalah ${ticket.ticketNumber}. Silahkan tunggu konfirmasi paling lama dalam waktu 14 hari.`);
                         await TicketService.updateTicketChatState(ticket.id, 5);
                         await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.PENDING);
                         await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 0);

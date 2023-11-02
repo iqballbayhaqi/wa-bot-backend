@@ -1,13 +1,17 @@
 const sql = require('mssql');
 const config = require('../../config/db.config')
 const TICKET_STATUS = require('../helpers/ticketStatus');
+const mapDashboardInfo = require('../helpers/ticketStatusMapper');
+
+const pool = new sql.ConnectionPool(config);
 
 const TicketModel = {
     getAllTickets: async () => {
         try {
-            await sql.connect(config);
+            await pool.connect();
+            const request = pool.request();
 
-            const result = await sql.query(`
+            const result = await request.query(`
                 SELECT * FROM Ticket
                 WHERE modifyStatus != 'D'
             `);
@@ -21,32 +25,22 @@ const TicketModel = {
                     startTime: ticket.startTime,
                     endTime: ticket.endTime,
                     issue: ticket.issue,
-                    issuerName: ticket.issuerName,
-                    issuerAfdeling: ticket.issuerAfdeling,
-                    issuerUnit: ticket.issuerUnit,
                     department: ticket.department,
                     category: ticket.category,
-                    chatState: ticket.chatState,
-                    chatHistory: ticket.chatHistory,
-                    createdTime: ticket.createdTime,
-                    modifyStatus: ticket.modifyStatus,
-                    lastModifiedTime: ticket.lastModifiedTime,
-                    lastModifiedBy: ticket.lastModifiedBy
                 }
             });
         } catch (err) {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     createTicket: async (ticketData) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('ticketNumber', sql.VarChar, ticketData.ticketNumber);
             request.input('phoneNumber', sql.VarChar, ticketData.phoneNumber);
@@ -66,15 +60,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateTicket: async (ticketData) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('chatState', sql.Int, ticketData.chatState);
             request.input('chatHistory', sql.NVarChar, ticketData.chatHistory);
@@ -109,21 +102,20 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getTicketById: async (ticketId) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
 
             const result = await request.query(`
-                SELECT * FROM Ticket
-                WHERE id = @id
+                SELECT id, ticketNumber, phoneNumber, department, category, status, chatHistory
+                FROM Ticket WHERE id = @id
             `);
 
             return result.recordset[0];
@@ -131,15 +123,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getActiveTicketByPhoneNumber: async (phoneNumber) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
 
@@ -154,15 +145,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getTicketChatHistory: async (ticketId) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
 
@@ -176,40 +166,51 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
-    updateTicketChatHistory: async (ticketId, chatHistory) => {
+    updateTicketChatHistory: async (ticketId, chatHistory, status) => {
         try {
-            await sql.connect(config);
+            await pool.connect();
+            const request = pool.request();
+            let result;
 
-            const request = new sql.Request();
+            if (status === "delivered" || status === "pending") {
+                request.input('id', sql.Int, ticketId);
+                request.input('chatHistory', sql.NVarChar, chatHistory);
 
-            request.input('id', sql.Int, ticketId);
-            request.input('chatHistory', sql.NVarChar, chatHistory);
+                result = await request.query(`
+                UPDATE Ticket
+                SET chatHistory = @chatHistory,
+                endTime = GETDATE()
+                WHERE id = @id
+            `);
+            } else {
+                request.input('id', sql.Int, ticketId);
+                request.input('chatHistory', sql.NVarChar, chatHistory);
 
-            const result = await request.query(`
+                result = await request.query(`
                 UPDATE Ticket
                 SET chatHistory = @chatHistory
                 WHERE id = @id
             `);
+            }
 
             return result;
         } catch (err) {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     // get number of ticket as of today
     getNumberOfTicketsByDate: async (date) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('date', sql.Date, date);
 
@@ -223,15 +224,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateTicketChatState: async (ticketId, chatState) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
             request.input('chatState', sql.Int, chatState);
@@ -249,15 +249,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateTicketIdentity: async (ticketId, identity) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
             request.input('issuerName', sql.VarChar, identity.name);
@@ -279,15 +278,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     moveTicket: async (ticketId, departmentId, categoryId, lastModifiedBy) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
             request.input('department', sql.Int, departmentId);
@@ -308,15 +306,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateTicketStatus: async (ticketId, status) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
             request.input('status', sql.VarChar, status);
@@ -334,15 +331,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     updateTicketExpiration: async (ticketId, expiryTime, hasExtended) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
             request.input('expiryTime', sql.DateTime, expiryTime);
@@ -362,15 +358,16 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getExpiredTickets: async () => {
         try {
-            await sql.connect(config);
+            await pool.connect();
+            const request = pool.request();
 
-            const result = await sql.query(`
+            const result = await request.query(`
                 SELECT * FROM Ticket
                 WHERE expiryTime < GETDATE()
                 AND modifyStatus != 'D'
@@ -390,15 +387,14 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     extendExpiredTicket: async (ticketId, expiryTime) => {
         try {
-            await sql.connect(config);
-
-            const request = new sql.Request();
+            await pool.connect();
+            const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
             request.input('expiryTime', sql.DateTime, expiryTime);
@@ -418,15 +414,16 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
         }
     },
 
     getContactWithExpiredTicket: async () => {
         try {
-            await sql.connect(config);
+            await pool.connect();
+            const request = pool.request();
 
-            const result = await sql.query(`
+            const result = await request.query(`
                 SELECT phoneNumber FROM Ticket
                 WHERE expiryTime < GETDATE()
                 AND modifyStatus != 'D'
@@ -442,10 +439,100 @@ const TicketModel = {
             console.error(err);
             throw err;
         } finally {
-            sql.close();
+            pool.close();
+        }
+    },
+
+    getDashboardInformation: async () => {
+        try {
+            await pool.connect();
+            const request = pool.request();
+
+            // Create a query to list the number of open, pending and closed ticket of each deparment
+            const result = await request.query(`
+                SELECT department, status, COUNT(*) AS numberOfTickets FROM Ticket
+                WHERE modifyStatus != 'D' AND department IS NOT NULL
+                GROUP BY department, status
+            `);
+
+            const tickets = await mapDashboardInfo(result.recordsets[0])
+            return tickets;
+        } catch (err) {
+            console.error(err);
+            throw err;
+        } finally {
+            pool.close();
+        }
+
+    },
+
+    getActiveTicketByDepartment: async (departmentId) => {
+        try {
+            await pool.connect();
+            const request = pool.request();
+
+            request.input('departmentId', sql.Int, departmentId);
+
+            const result = await request.query(`
+                SELECT * FROM Ticket
+                WHERE department = @departmentId
+                AND status != 'CLOSED'
+            `);
+
+            return result.recordset.map((ticket) => {
+                return {
+                    id: ticket.id,
+                    ticketNumber: ticket.ticketNumber,
+                    status: ticket.status,
+                    phoneNumber: ticket.phoneNumber,
+                    startTime: ticket.startTime,
+                    endTime: ticket.endTime,
+                    issue: ticket.issue,
+                    department: ticket.department,
+                    category: ticket.category,
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            throw err;
+        } finally {
+            pool.close();
+        }
+    },
+
+    getActiveTicketByCategory: async (categoryId) => {
+        try {
+            await pool.connect();
+            const request = pool.request();
+
+            request.input('categoryId', sql.Int, categoryId);
+
+            const result = await request.query(`
+                SELECT * FROM Ticket
+                WHERE category = @categoryId
+                AND status != 'CLOSED'
+            `);
+
+            return result.recordset.map((ticket) => {
+                return {
+                    id: ticket.id,
+                    ticketNumber: ticket.ticketNumber,
+                    status: ticket.status,
+                    phoneNumber: ticket.phoneNumber,
+                    startTime: ticket.startTime,
+                    endTime: ticket.endTime,
+                    issue: ticket.issue,
+                    department: ticket.department,
+                    category: ticket.category,
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            throw err;
+        } finally {
+            pool.close();
         }
     }
-
 };
 
 module.exports = TicketModel;

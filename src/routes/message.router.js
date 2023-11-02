@@ -4,6 +4,6 @@ const MessageController = require('../controllers/message.controller');
 const router = express.Router();
 
 router.post('/send', MessageController.sendMessage);
-router.get('/send', MessageController.sendMessage);
+router.post('/broadcast', MessageController.broadcastMessage);
 
 module.exports = router;

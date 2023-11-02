@@ -1,11 +1,15 @@
 const sql = require('mssql');
 const config = require('../../config/db.config')
 
+const pool = new sql.ConnectionPool(config);
+
 const DepartmentModel = {
 	getAllDepartments: async () => {
 		try {
-			await sql.connect(config);
-			const result = await sql.query('SELECT * FROM Department WHERE modifyStatus != \'D\'');
+			await pool.connect();
+			const request = pool.request();
+
+			const result = await request.query('SELECT * FROM Department WHERE modifyStatus != \'D\'');
 			const departments = result.recordset.map((row) => ({
 				id: row.id,
 				name: row.name,
@@ -21,15 +25,14 @@ const DepartmentModel = {
 			console.error(err);
 			throw err;
 		} finally {
-			sql.close();
+			pool.close();
 		}
 	},
 
 	addDepartment: async (departmentData) => {
 		try {
-			await sql.connect(config);
-
-			const request = new sql.Request();
+			await pool.connect();
+			const request = pool.request();
 
 			request.input('name', sql.VarChar, departmentData.name);
 			request.input('code', sql.VarChar, departmentData.code);
@@ -46,16 +49,15 @@ const DepartmentModel = {
 			console.error(err);
 			throw err;
 		} finally {
-			sql.close();
+			pool.close();
 		}
 	},
 
 	//use parameterized query to prevent sql injection
 	updateDepartment: async (departmentData) => {
 		try {
-			await sql.connect(config);
-
-			const request = new sql.Request();
+			await pool.connect();
+			const request = pool.request();
 
 			request.input('name', sql.VarChar, departmentData.name);
 			request.input('code', sql.VarChar, departmentData.code);
@@ -77,15 +79,14 @@ const DepartmentModel = {
 			console.error(err);
 			throw err;
 		} finally {
-			sql.close();
+			pool.close();
 		}
 	},
 
 	deleteDepartment: async (departmentData) => {
 		try {
-			await sql.connect(config);
-
-			const request = new sql.Request();
+			await pool.connect();
+			const request = pool.request();
 
 			request.input('id', sql.Int, departmentData.id);
 			request.input('modifyStatus', sql.VarChar, 'D');
@@ -103,15 +104,14 @@ const DepartmentModel = {
 			console.error(err);
 			throw err;
 		} finally {
-			sql.close();
+			pool.close();
 		}
 	},
 
 	getDepartmentByCode: async (departmentCode) => {
 		try {
-			await sql.connect(config);
-
-			const request = new sql.Request();
+			await pool.connect();
+			const request = pool.request();
 
 			request.input('code', sql.VarChar, departmentCode);
 
@@ -126,15 +126,14 @@ const DepartmentModel = {
 			console.error(err);
 			throw err;
 		} finally {
-			sql.close();
+			pool.close();
 		}
 	},
 
 	getDepartmentById: async (departmentId) => {
 		try {
-			await sql.connect(config);
-
-			const request = new sql.Request();
+			await pool.connect();
+			const request = pool.request();
 
 			request.input('id', sql.Int, departmentId);
 
@@ -149,7 +148,7 @@ const DepartmentModel = {
 			console.error(err);
 			throw err;
 		} finally {
-			sql.close();
+			pool.close();
 		}
 	},
 
