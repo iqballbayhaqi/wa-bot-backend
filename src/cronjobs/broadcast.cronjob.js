@@ -1,7 +1,7 @@
 const BroadcastService = require("../services/broadcast.service");
 const MessageService = require("../services/message.service");
 
-const broadcastJob = async () => {
+const broadcastJob = async (broadcastQuota, sentMessages, maximumBroadcastQuota) => {
     console.log("Running broadcast job ....")
     const broadcast = await BroadcastService.getUncompletedBroadcast();
 
@@ -20,6 +20,7 @@ const broadcastJob = async () => {
         for (let i = 0; i < numberListToSend.length; i++) {
             if (i <= broadcastQuota) {
                 const number = numberListToSend[i];
+                console.log("sending to: ", number, message)
                 await MessageService.sendMessage(number, message);
                 const index = numberListParsed.findIndex(item => item.phoneNumber === number);
                 numberListParsed[index].isSent = true;
@@ -44,11 +45,10 @@ const broadcastJob = async () => {
             await BroadcastService.updateBroadcast(id, numberListUpdated, isComplete);
         }
 
-        sentMessages = 0;
-
-
-        let newQuota = broadcastQuota;
-        let sentMsg = sentMessages;
+        let sentMsg = 0;
+        let newQuota = 0;
+        sentMsg = sentMessages;
+        newQuota = broadcastQuota;
 
         return { newQuota, sentMsg }
     }

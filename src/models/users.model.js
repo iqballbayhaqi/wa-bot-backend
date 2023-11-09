@@ -3,11 +3,11 @@ const config = require('../../config/db.config');
 const role = require('../helpers/role');
 
 const pool = new sql.ConnectionPool(config);
+pool.connect()
 
 const UserModel = {
     createUser: async (userData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('nik', sql.VarChar, userData.nik);
@@ -24,14 +24,11 @@ const UserModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     findUserByNik: async (nik) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('nik', sql.VarChar, nik);
@@ -44,14 +41,11 @@ const UserModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getUserPassword: async (nik) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('nik', sql.VarChar, nik);
@@ -64,8 +58,6 @@ const UserModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     }
 }

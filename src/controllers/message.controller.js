@@ -20,21 +20,29 @@ const MessageController = {
 
     broadcastMessage: async (req, res) => {
         try {
-            const { msg, type, filter } = req.body;
+            const { title, msg, type, selected } = req.body;
 
-            if (msg == null || type == null) {
+            if (title == null | msg == null || type == null || selected == null) {
                 return httpResponse.badrequest(res, "One or more required fields are missing");
             }
 
-            await BroadcastService.createBroadcast(msg, type, filter)
+            await BroadcastService.createBroadcast(title, msg, type, selected)
 
             return httpResponse.success(res, { message: 'Message broadcasted' });
         } catch (err) {
             console.log(err)
             return httpResponse.error(res, "Internal Server Error");
         }
+    },
+
+    getBroadcasts: async (req, res) => {
+        try {
+            const broadcasts = await BroadcastService.getAllBroadcast();
+            return httpResponse.success(res, broadcasts);
+        } catch (err) {
+            return httpResponse.error(res, "Internal Server Error")
+        }
     }
 }
-
 
 module.exports = MessageController;

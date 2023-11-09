@@ -11,6 +11,16 @@ const ContactService = {
         }
     },
 
+    getAllContact: async () => {
+        try {
+            const contacts = await ContactModel.getAllContact();
+            return contacts;
+        } catch (err) {
+            console.error('Error in ContactService.getAllContact:', err);
+            throw err;
+        }
+    },
+
     getAllEmployeeContact: async () => {
         try {
             const contacts = await ContactModel.getAllEmployeeContact();
@@ -100,6 +110,26 @@ const ContactService = {
             await ContactModel.updateContactHasActiveTicket(phoneNumber, hasActiveTicket);
         } catch (err) {
             console.error('Error in ContactService.updateContactHasActiveTicket:', err);
+            throw err;
+        }
+    },
+
+    getContactWithLastTicketByDepartment: async (departmentId) => {
+        try {
+            const contacts = await ContactModel.getContactWithLastTicketByDepartment(departmentId);
+            return contacts;
+        } catch (err) {
+            console.error('Error in ContactService.getContactWithLastTicketByDepartment:', err);
+            throw err;
+        }
+    },
+
+    getContactWithLastTicketByCategory: async (categoryId) => {
+        try {
+            const contacts = await ContactModel.getContactWithLastTicketByCategory(categoryId);
+            return contacts;
+        } catch (err) {
+            console.error('Error in ContactService.getContactWithLastTicketByCategory:', err);
             throw err;
         }
     }

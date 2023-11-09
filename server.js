@@ -2,12 +2,17 @@ const httpError = require("http-errors");
 const bodyParser = require("body-parser");
 const http = require("http");
 const cron = require("node-cron");
+const cors = require("cors");
 const initSocket = require("./src/socket/socket");
-
+const { Server } = require("socket.io");
 require("dotenv").config();
 
 const express = require("express");
 const app = express();
+
+// allow cors for websockets
+app.use(cors());
+
 const server = http.createServer(app);
 
 const port = process.env.PORT || 3000;
@@ -29,7 +34,9 @@ const TicketService = require("./src/services/ticket.service");
 const TICKET_STATUS = require("./src/helpers/ticketStatus");
 const BroadcastService = require("./src/services/broadcast.service");
 const MessageService = require("./src/services/message.service");
+const contactRouter = require("./src/routes/contact.router");
 const broadcastJob = require("./src/cronjobs/broadcast.cronjob");
+const ContactService = require("./src/services/contact.service");
 
 app.use("/api/v1", departmentRouter);
 app.use("/api/v1", categoryRouter);
@@ -39,6 +46,7 @@ app.use("/api/v1", ticketRouter);
 app.use("/api/v1", webhookRouter);
 app.use("/api/v1", questionRouter);
 app.use("/api/v1", dashboardRouter);
+app.use("/api/v1", contactRouter);
 
 app.use(async (req, res, next) => {
   next(httpError.NotFound());
@@ -64,10 +72,16 @@ cron.schedule("* * * * * ", async function () {
     const ticket = expiredTickets[i];
     if (ticket.hasExtended && ticket.status === TICKET_STATUS.PENDING) {
       await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
+      await ContactService.updateContactHasActiveTicket(ticket.phoneNumber, false)
     } else {
       await TicketService.extendExpiredTicket(
         ticket.id,
         ticket.expiryTime + 60 * 1000
+      );
+
+      await MessageService.sendMessage(
+        ticket.phoneNumber,
+        "Your ticket has been extended for 1 minute"
       );
     }
   }
@@ -75,13 +89,15 @@ cron.schedule("* * * * * ", async function () {
   console.log(expiredTickets);
 });
 
+// Keep in database as config
 let broadcastQuota = 5;
 let sentMessages = 0;
 let maximumBroadcastQuota = 300;
 
-// run task every 1 hour
-cron.schedule("0 * * * *", async function () {
+// run task every 1 minute
+cron.schedule("* * * * *", async function () {
   let { newQuota, sentMsg } = await broadcastJob(broadcastQuota, sentMessages, maximumBroadcastQuota);
+  console.log(newQuota, sentMsg)
   broadcastQuota = newQuota;
   sentMessages = sentMsg;
 });

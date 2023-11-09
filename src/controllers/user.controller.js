@@ -69,9 +69,10 @@ const UserController = {
             }
 
             // Generate token
-            const token = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1h' });
+            const accessToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1h' });
+            const refreshToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '2h' });
 
-            return httpResponse.success(res, { token });
+            return httpResponse.success(res, { accessToken, refreshToken });
         } catch (err) {
             if (err.isJoi) {
                 return httpResponse.badrequest(res, err.message);

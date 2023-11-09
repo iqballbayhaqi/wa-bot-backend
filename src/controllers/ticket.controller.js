@@ -52,11 +52,14 @@ const TicketController = {
                 return httpResponse.notfound(res, "Department not found");
             }
 
-            if (categoryId) {
-                const category = await CategoryService.getCategoryById(categoryId);
-                if (!category) {
-                    return httpResponse.notfound(res, "Category not found");
-                }
+            const category = await CategoryService.getCategoryById(categoryId);
+
+            if (!category) {
+                return httpResponse.notfound(res, "Category not found");
+            }
+
+            if (category.departmentCode !== department.code) {
+                return httpResponse.badrequest(res, "Category does not belong to department");
             }
 
             const result = await TicketService.moveTicket(id, departmentId, categoryId, lastModifiedBy);
@@ -77,7 +80,7 @@ const TicketController = {
 const moveTicketSchema = Joi.object({
     id: Joi.number().required(),
     departmentId: Joi.number().required(),
-    categoryId: Joi.number()
+    categoryId: Joi.number().required(),
 });
 
 module.exports = TicketController;

@@ -2,11 +2,11 @@ const sql = require('mssql');
 const config = require('../../config/db.config')
 
 const pool = new sql.ConnectionPool(config);
+pool.connect();
 
 const CategoryModel = {
     getAllCategory: async () => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             const result = await request.query(`
@@ -29,14 +29,11 @@ const CategoryModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     addCategory: async (categoryData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('name', sql.VarChar, categoryData.name);
@@ -53,14 +50,11 @@ const CategoryModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateCategory: async (categoryData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             // Bind parameters to the request object
@@ -82,14 +76,11 @@ const CategoryModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     deleteCategory: async (categoryData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, categoryData.id);
@@ -107,14 +98,11 @@ const CategoryModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getCategoryById: async (categoryId) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, categoryId);
@@ -129,8 +117,6 @@ const CategoryModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     }
 

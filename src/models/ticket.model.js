@@ -4,11 +4,11 @@ const TICKET_STATUS = require('../helpers/ticketStatus');
 const mapDashboardInfo = require('../helpers/ticketStatusMapper');
 
 const pool = new sql.ConnectionPool(config);
+pool.connect();
 
 const TicketModel = {
     getAllTickets: async () => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             const result = await request.query(`
@@ -32,26 +32,24 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     createTicket: async (ticketData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('ticketNumber', sql.VarChar, ticketData.ticketNumber);
             request.input('phoneNumber', sql.VarChar, ticketData.phoneNumber);
+            request.input('whatsappName', sql.VarChar, ticketData.whatsappName);
             request.input('chatState', sql.Int, 1);
             request.input('chatHistory', sql.VarChar, ticketData.chatHistory);
             request.input('issue', sql.NVarChar, ticketData.issue);
             request.input('status', sql.VarChar, TICKET_STATUS.OPEN);
 
             const result = await request.query(`
-                INSERT INTO Ticket (ticketNumber, phoneNumber, chatState, chatHistory, status, issue)
-                VALUES (@ticketNumber, @phoneNumber, @chatState, @chatHistory, @status, @issue);
+                INSERT INTO Ticket (ticketNumber, whatsappName, phoneNumber, chatState, chatHistory, status, issue)
+                VALUES (@ticketNumber, @whatsappName, @phoneNumber, @chatState, @chatHistory, @status, @issue);
                 SELECT SCOPE_IDENTITY() AS newTicketId;
             `);
 
@@ -59,14 +57,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateTicket: async (ticketData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('chatState', sql.Int, ticketData.chatState);
@@ -101,14 +96,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getTicketById: async (ticketId) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -122,14 +114,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getActiveTicketByPhoneNumber: async (phoneNumber) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
@@ -144,14 +133,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getTicketChatHistory: async (ticketId) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -165,14 +151,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateTicketChatHistory: async (ticketId, chatHistory, status) => {
         try {
-            await pool.connect();
             const request = pool.request();
             let result;
 
@@ -201,15 +184,12 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     // get number of ticket as of today
     getNumberOfTicketsByDate: async (date) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('date', sql.Date, date);
@@ -223,14 +203,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateTicketChatState: async (ticketId, chatState) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -248,14 +225,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateTicketIdentity: async (ticketId, identity) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -277,14 +251,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     moveTicket: async (ticketId, departmentId, categoryId, lastModifiedBy) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -305,14 +276,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateTicketStatus: async (ticketId, status) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -330,14 +298,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateTicketExpiration: async (ticketId, expiryTime, hasExtended) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -357,14 +322,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getExpiredTickets: async () => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             const result = await request.query(`
@@ -378,6 +340,7 @@ const TicketModel = {
                 return {
                     id: ticket.id,
                     ticketNumber: ticket.ticketNumber,
+                    phoneNumber: ticket.phoneNumber,
                     expiryTime: ticket.expiryTime,
                     hasExtended: ticket.hasExtended,
                     status: ticket.status,
@@ -386,14 +349,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     extendExpiredTicket: async (ticketId, expiryTime) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, ticketId);
@@ -413,14 +373,11 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getContactWithExpiredTicket: async () => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             const result = await request.query(`
@@ -438,37 +395,55 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
-    getDashboardInformation: async () => {
+    getDashboardInformation: async (startDate, endDate) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
-            // Create a query to list the number of open, pending and closed ticket of each deparment
+            request.input('startDate', sql.Date, startDate);
+            request.input('endDate', sql.Date, endDate);
+
+            console.log(startDate, endDate)
+
             const result = await request.query(`
-                SELECT department, status, COUNT(*) AS numberOfTickets FROM Ticket
-                WHERE modifyStatus != 'D' AND department IS NOT NULL
-                GROUP BY department, status
+            SELECT
+                department.id AS departmentId,
+                department.name AS departmentName,
+                COUNT(CASE WHEN status = 'OPEN' AND (ticket.createdTime IS NULL OR (ticket.createdTime >= @startDate AND ticket.createdTime <= @endDate)) THEN 1 END) AS openTickets,
+                COUNT(CASE WHEN status = 'PENDING' AND (ticket.createdTime IS NULL OR (ticket.createdTime >= @startDate AND ticket.createdTime <= @endDate)) THEN 1 END) AS pendingTickets,
+                COUNT(CASE WHEN status = 'CLOSED' AND (ticket.createdTime IS NULL OR (ticket.createdTime >= @startDate AND ticket.createdTime <= @endDate)) THEN 1 END) AS closedTickets,
+                COUNT(CASE WHEN status IN ('OPEN', 'PENDING', 'CLOSED') AND (ticket.createdTime IS NULL OR (ticket.createdTime >= @startDate AND ticket.createdTime <= @endDate)) THEN 1 END) AS totalTickets
+            FROM Department department
+            LEFT JOIN Ticket ticket ON department.id = ticket.department
+            GROUP BY department.id, department.name
+
+            UNION ALL
+
+            SELECT
+                NULL AS departmentId,
+                'Unassigned' AS departmentName,
+                COUNT(CASE WHEN status = 'OPEN' AND (createdTime IS NULL OR (createdTime >= @startDate AND createdTime <= @endDate)) THEN 1 END) AS openTickets,
+                COUNT(CASE WHEN status = 'PENDING' AND (createdTime IS NULL OR (createdTime >= @startDate AND createdTime <= @endDate)) THEN 1 END) AS pendingTickets,
+                COUNT(CASE WHEN status = 'CLOSED' AND (createdTime IS NULL OR (createdTime >= @startDate AND createdTime <= @endDate)) THEN 1 END) AS closedTickets,
+                COUNT(CASE WHEN status IN ('OPEN', 'PENDING', 'CLOSED') AND (createdTime IS NULL OR (createdTime >= @startDate AND createdTime <= @endDate)) THEN 1 END) AS totalTickets
+            FROM Ticket
+            WHERE department IS NULL;
+
+
             `);
 
-            const tickets = await mapDashboardInfo(result.recordsets[0])
-            return tickets;
+            return result.recordsets[0];
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
 
     },
 
     getActiveTicketByDepartment: async (departmentId) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('departmentId', sql.Int, departmentId);
@@ -495,14 +470,39 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
+        }
+    },
+
+    getAllTicketByDepartment: async (departmentId) => {
+        try {
+            const request = pool.request();
+
+            request.input('departmentId', sql.Int, departmentId);
+
+            const result = await request.query(`
+                SELECT * FROM Ticket
+                WHERE department = @departmentId
+                AND modifyStatus != 'D'
+            `);
+
+            return result.recordset.map((ticket) => {
+                return {
+                    id: ticket.id,
+                    ticketNumber: ticket.ticketNumber,
+                    status: ticket.status,
+                    phoneNumber: ticket.phoneNumber,
+                    department: ticket.department,
+                    createdTime: ticket.createdTime,
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            throw err;
         }
     },
 
     getActiveTicketByCategory: async (categoryId) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('categoryId', sql.Int, categoryId);
@@ -529,8 +529,6 @@ const TicketModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     }
 };

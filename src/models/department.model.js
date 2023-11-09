@@ -2,11 +2,11 @@ const sql = require('mssql');
 const config = require('../../config/db.config')
 
 const pool = new sql.ConnectionPool(config);
+pool.connect();
 
 const DepartmentModel = {
 	getAllDepartments: async () => {
 		try {
-			await pool.connect();
 			const request = pool.request();
 
 			const result = await request.query('SELECT * FROM Department WHERE modifyStatus != \'D\'');
@@ -24,14 +24,11 @@ const DepartmentModel = {
 		} catch (err) {
 			console.error(err);
 			throw err;
-		} finally {
-			pool.close();
 		}
 	},
 
 	addDepartment: async (departmentData) => {
 		try {
-			await pool.connect();
 			const request = pool.request();
 
 			request.input('name', sql.VarChar, departmentData.name);
@@ -48,15 +45,12 @@ const DepartmentModel = {
 		} catch (err) {
 			console.error(err);
 			throw err;
-		} finally {
-			pool.close();
 		}
 	},
 
 	//use parameterized query to prevent sql injection
 	updateDepartment: async (departmentData) => {
 		try {
-			await pool.connect();
 			const request = pool.request();
 
 			request.input('name', sql.VarChar, departmentData.name);
@@ -78,14 +72,11 @@ const DepartmentModel = {
 		} catch (err) {
 			console.error(err);
 			throw err;
-		} finally {
-			pool.close();
 		}
 	},
 
 	deleteDepartment: async (departmentData) => {
 		try {
-			await pool.connect();
 			const request = pool.request();
 
 			request.input('id', sql.Int, departmentData.id);
@@ -103,14 +94,11 @@ const DepartmentModel = {
 		} catch (err) {
 			console.error(err);
 			throw err;
-		} finally {
-			pool.close();
 		}
 	},
 
 	getDepartmentByCode: async (departmentCode) => {
 		try {
-			await pool.connect();
 			const request = pool.request();
 
 			request.input('code', sql.VarChar, departmentCode);
@@ -125,14 +113,11 @@ const DepartmentModel = {
 		} catch (err) {
 			console.error(err);
 			throw err;
-		} finally {
-			pool.close();
 		}
 	},
 
 	getDepartmentById: async (departmentId) => {
 		try {
-			await pool.connect();
 			const request = pool.request();
 
 			request.input('id', sql.Int, departmentId);
@@ -147,8 +132,6 @@ const DepartmentModel = {
 		} catch (err) {
 			console.error(err);
 			throw err;
-		} finally {
-			pool.close();
 		}
 	},
 

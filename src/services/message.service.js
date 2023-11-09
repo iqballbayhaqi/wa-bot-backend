@@ -92,36 +92,37 @@ const MessageService = {
 
         contact = await ContactService.findContactByPhoneNumber(chatHistory.from);
 
-        if (contact.isEmployee === null || contact.isEmployee === true) {
-            if (contact.hasActiveTicket) {
+
+        if (contact.hasActiveTicket) {
+            ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
+            await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
+        } else {
+            if (chatHistory.text) {
+                const ticketNumber = await TicketService.generateTicketNumber();
+
+                await TicketService.createTicket({
+                    phoneNumber: chatHistory.from,
+                    whatsappName: chatHistory.name,
+                    chatHistory: JSON.stringify([chatHistory]),
+                    ticketNumber: ticketNumber,
+                    issue: chatHistory.text
+                })
+
+                await ContactService.updateContactHasActiveTicket(chatHistory.from, true);
+
                 ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
                 await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
-            } else {
-                if (chatHistory.text) {
-                    const ticketNumber = await TicketService.generateTicketNumber();
-
-                    await TicketService.createTicket({
-                        phoneNumber: chatHistory.from,
-                        chatHistory: JSON.stringify([chatHistory]),
-                        ticketNumber: ticketNumber,
-                        issue: chatHistory.text
-                    })
-                    // update contact hasActiveTicket to true
-                    await ContactService.updateContactHasActiveTicket(chatHistory.from, true);
-
-                    ticket = await TicketService.getActiveTicketByPhoneNumber(chatHistory.from);
-                    await TicketService.updateTicketChatHistory(ticket.id, chatHistory);
-                }
             }
-
-
-            await MessageService.processIncomingMessage(contact, chatHistory, ticket);
-            await ContactService.updateContactChatHistory(chatHistory.from, chatHistory);
         }
+
+        await MessageService.processIncomingMessage(contact, chatHistory, ticket);
+        await ContactService.updateContactChatHistory(chatHistory.from, chatHistory);
+
 
     },
 
     processIncomingMessage: async (contact, chatHistory, ticket) => {
+        console.log("chatState", ticket.chatState)
         switch (ticket.chatState) {
             case 1:
                 await MessageService.sendMessage(chatHistory.from, 'Apakah anda karyawan Best Agro International? [Ya/Tidak]');
@@ -133,9 +134,13 @@ const MessageService = {
                         await ContactService.updateContactEmploymentStatus(chatHistory.from, true);
                         await MessageService.sendMessage(chatHistory.from, 'Silahkan info data anda: Nama/Afdeling/Unit Usaha (PT)');
                         await TicketService.updateTicketChatState(ticket.id, 3);
-                    } else {
+                    }
+                    else if (chatHistory.text.toLowerCase() === 'tidak') {
                         await ContactService.updateContactEmploymentStatus(chatHistory.from, false);
-                        await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.CLOSED);
+                        await TicketService.updateTicketChatState(ticket.id, 4);
+                    }
+                    else {
+                        await MessageService.sendMessage(chatHistory.from, 'Tolong masukkan informasi dengan benar');
                     }
                 }
                 break;
@@ -207,7 +212,8 @@ const MessageService = {
                         await MessageService.sendMessage(chatHistory.to, `Nomor tiket pengaduan anda adalah ${ticket.ticketNumber}. Silahkan tunggu konfirmasi paling lama dalam waktu 14 hari.`);
                         await TicketService.updateTicketChatState(ticket.id, 5);
                         await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.PENDING);
-                        await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 0);
+                        // await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + (14 * 24 * 60 * 60 * 1000) + (1000 * 60 * 60 * 7)), 0);
+                        await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + (1 * 1 * 1 * 60 * 1000) + (1000 * 60 * 60 * 7)), 0);
                     } else {
                         console.log("Pertanyaan salah")
                     }

@@ -3,13 +3,7 @@ const eventEmitter = require("../event/event");
 const MessageService = require("../services/message.service");
 
 const initSocket = (server) => {
-    const io = new Server(server, {
-        cors: {
-            origin: "http://localhost:4000",
-            methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        },
-        keepAlive: true,
-    });
+    const io = new Server(server);
 
     io.on("connection", (socket) => {
         console.log("Client connected");
@@ -28,6 +22,7 @@ const initSocket = (server) => {
     });
 
     eventEmitter.on("callback", (data) => {
+        console.log("Emitting callback to client")
         io.emit("callback", data);
     });
 };

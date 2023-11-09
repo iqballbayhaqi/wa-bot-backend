@@ -1,4 +1,6 @@
+const ContactModel = require('../models/contact.model');
 const TicketModel = require('../models/ticket.model');
+const MessageService = require('./message.service');
 
 
 const TicketService = {
@@ -113,7 +115,9 @@ const TicketService = {
 
     moveTicket: async (ticketId, departmentId, categoryId, lastModifiedBy) => {
         try {
+            const ticket = await TicketModel.getTicketById(ticketId);
             await TicketModel.moveTicket(ticketId, departmentId, categoryId, lastModifiedBy);
+            await ContactModel.updateContactLastTicket(ticket.phoneNumber, departmentId, categoryId)
         } catch (err) {
             console.error('Error in TicketService.moveTicket:', err);
             throw err;
@@ -167,6 +171,16 @@ const TicketService = {
         }
     },
 
+    getTicketByDepartment: async (departmentId) => {
+        try {
+            const tickets = await TicketModel.getAllTicketByDepartment(departmentId);
+            return tickets;
+        } catch (err) {
+            console.error('Error in TicketService.getTicketByDepartment:', err);
+            throw err;
+        }
+    },
+
     getActiveTicketByDepartment: async (departmentId) => {
         try {
             const tickets = await TicketModel.getActiveTicketByDepartment(departmentId);
@@ -189,9 +203,9 @@ const TicketService = {
 
     generateTicketNumber: async () => {
         const date = new Date();
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
+        const year = date.getFullYear().toString().padStart(4, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
 
         const numberOfTickets = await TicketModel.getNumberOfTicketsByDate(date);
         const numberOfTicketsFixed = (numberOfTickets + 1).toString().padStart(5, '0');

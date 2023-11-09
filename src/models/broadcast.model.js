@@ -2,36 +2,33 @@ const sql = require('mssql');
 const config = require('../../config/db.config');
 
 const pool = new sql.ConnectionPool(config);
+pool.connect();
 
 const BroadcastModel = {
-    createBroadcast: async (message, numberList) => {
+    createBroadcast: async (title, message, numberList) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
+            request.input('title', sql.VarChar, title)
             request.input('message', sql.VarChar, message);
             request.input('numberList', sql.NVarChar, numberList);
 
             const result = await request.query(`
-                INSERT INTO Broadcast (message, numberList, isComplete)
-                VALUES (@message, @numberList, 0)
+                INSERT INTO Broadcast (title, message, numberList, isComplete)
+                VALUES (@title, @message, @numberList, 0)
             `);
 
             return result.recordset;
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getUncompletedBroadcast: async () => {
         try {
-            await pool.connect();
             const request = pool.request();
 
-            // This should apply FIFO
             const result = await request.query(`
                 SELECT TOP 1 * FROM Broadcast WHERE isComplete = 0
             `);
@@ -40,14 +37,11 @@ const BroadcastModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateBroadcast: async (id, numberList, isComplete) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('id', sql.Int, id);
@@ -64,8 +58,31 @@ const BroadcastModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
+        }
+    },
+
+    getAllBroadcast: async () => {
+        try {
+            const request = pool.request();
+
+            const result = await request.query(`
+                SELECT * FROM Broadcast
+            `);
+
+            const broadcasts = result.recordset.map(broadcast => {
+                return {
+                    id: broadcast.id,
+                    title: broadcast.title,
+                    message: broadcast.message,
+                    createdAt: broadcast.createdTime,
+                    totalMessage: JSON.parse(broadcast.numberList).length,
+                }
+            });
+
+            return broadcasts;
+        } catch (err) {
+            console.error(err);
+            throw err;
         }
     }
 }

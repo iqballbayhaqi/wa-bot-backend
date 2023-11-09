@@ -3,11 +3,11 @@ const config = require('../../config/db.config');
 const { getCurrentDateTime } = require('../helpers/time');
 
 const pool = new sql.ConnectionPool(config);
+pool.connect();
 
 const ContactModel = {
     createContact: async (contactData) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, contactData.phoneNumber);
@@ -18,17 +18,31 @@ const ContactModel = {
                 VALUES (@phoneNumber);
                 SELECT SCOPE_IDENTITY() AS newContactId;
             `);
+
+            return result.recordset[0].newContactId;
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
+        }
+    },
+
+    getAllContact: async () => {
+        try {
+            const request = pool.request();
+            const result = await request.query(`
+                SELECT id, phoneNumber FROM Contact
+                WHERE modifyStatus != 'D'
+            `);
+
+            return result.recordset;
+        } catch (err) {
+            console.error(err);
+            throw err;
         }
     },
 
     getAllEmployeeContact: async () => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             const result = await request.query(`
@@ -38,12 +52,12 @@ const ContactModel = {
 
             return result.recordset;
         } catch (err) {
+            console.log(err);
         }
     },
 
     findContactByPhoneNumber: async (phoneNumber) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
@@ -57,14 +71,11 @@ const ContactModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     getContactChatHistory: async (phoneNumber) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
@@ -78,14 +89,11 @@ const ContactModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateContactChatHistory: async (phoneNumber, chatHistory) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
@@ -100,20 +108,17 @@ const ContactModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateContactHasActiveTicket: async (phoneNumber, hasActiveTicket) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
             request.input('hasActiveTicket', sql.Bit, hasActiveTicket);
 
-            const result = await request.query(`
+            await request.query(`
                 UPDATE Contact
                 SET hasActiveTicket = @hasActiveTicket
                 WHERE phoneNumber = @phoneNumber
@@ -121,20 +126,17 @@ const ContactModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
         }
     },
 
     updateContactEmploymentStatus: async (phoneNumber, isEmployee) => {
         try {
-            await pool.connect();
             const request = pool.request();
 
             request.input('phoneNumber', sql.VarChar, phoneNumber);
             request.input('isEmployee', sql.Bit, isEmployee);
 
-            const result = await request.query(`
+            await request.query(`
                 UPDATE Contact
                 SET isEmployee = @isEmployee
                 WHERE phoneNumber = @phoneNumber
@@ -142,10 +144,66 @@ const ContactModel = {
         } catch (err) {
             console.error(err);
             throw err;
-        } finally {
-            pool.close();
+        }
+    },
+
+    updateContactLastTicket: async (phoneNumber, departmentId, categoryId) => {
+        try {
+            const request = pool.request();
+
+            request.input('phoneNumber', sql.VarChar, phoneNumber);
+            request.input('departmentId', sql.Int, departmentId);
+            request.input('categoryId', sql.Int, categoryId);
+
+            await request.query(`
+                UPDATE Contact
+                SET lastDepartmentId = @departmentId,
+                lastCategoryId = @categoryId
+                WHERE phoneNumber = @phoneNumber
+            `);
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    },
+
+    getContactWithLastTicketByDepartment: async (departmentId) => {
+        try {
+            const request = pool.request();
+
+            request.input('departmentId', sql.Int, departmentId);
+
+            const result = await request.query(`
+                SELECT phoneNumber FROM Contact
+                WHERE lastDepartmentId = @departmentId
+                AND modifyStatus != 'D'
+            `);
+
+            return result.recordset;
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    },
+    getContactWithLastTicketByCategory: async (categoryId) => {
+        try {
+            const request = pool.request();
+
+            request.input('categoryId', sql.Int, categoryId);
+
+            const result = await request.query(`
+                SELECT phoneNumber FROM Contact
+                WHERE lastCategoryId = @categoryId
+                AND modifyStatus != 'D'
+            `);
+
+            return result.recordset;
+        } catch (err) {
+            console.error(err);
+            throw err;
         }
     }
+
 
 }
 

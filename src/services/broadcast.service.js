@@ -2,37 +2,40 @@
 const BroadcastModel = require('../models/broadcast.model');
 const ContactService = require('./contact.service');
 const TicketService = require('./ticket.service');
-// const QuestionService = require('./question.service');
-// const TICKET_STATUS = require('../helpers/ticketStatus');
-
-// const MESSAGE_TYPE = 'text';
 
 const BroadcastService = {
-    createBroadcast: async (msg, type, filter) => {
+    createBroadcast: async (title, msg, type, selected) => {
         try {
             if (type == "all") {
                 console.log("Broadcasting to all")
-                const contacts = await ContactService.getAllEmployeeContact();
-                const contactList = await contacts.map(contact => { return { phoneNumber: contact.phoneNumber, isSent: false } });
 
-                await BroadcastModel.createBroadcast(msg, JSON.stringify(contactList));
+                const contactList = await selected.map(contact => { return { phoneNumber: contact, isSent: false } });
+                await BroadcastModel.createBroadcast(title, msg, JSON.stringify(contactList));
 
             } else if (type == "department") {
                 console.log("Broadcasting to department")
-                const tickets = await TicketService.getActiveTicketByDepartment(filter)
+                let contact = [];
 
-                const contactList = await tickets.map(ticket => { return { phoneNumber: ticket.phoneNumber, isSent: false } });
+                for (let i = 0; i < selected.length; i++) {
+                    contact = contact.concat(await ContactService.getContactWithLastTicketByDepartment(selected[i])).map(item => item.phoneNumber);
+                }
 
-                await BroadcastModel.createBroadcast(msg, JSON.stringify(contactList));
+                const unique = [...new Set(contact)];
+                const contactList = await unique.map(number => { return { phoneNumber: number, isSent: false } });
+                await BroadcastModel.createBroadcast(title, msg, JSON.stringify(contactList));
 
             } else if (type == "category") {
                 console.log("Broadcasting to category")
-                const tickets = await TicketService.getActiveTicketByCategory(filter)
+                let contact = [];
 
-                const contactList = await tickets.map(ticket => { return { phoneNumber: ticket.phoneNumber, isSent: false } });
+                for (let i = 0; i < selected.length; i++) {
+                    contact = contact.concat(await ContactService.getContactWithLastTicketByCategory(selected[i]));
+                }
 
-                await BroadcastModel.createBroadcast(msg, JSON.stringify(contactList));
+                const unique = [...new Set(contact)];
+                const contactList = await unique.map(number => { return { phoneNumber: number, isSent: false } });
 
+                await BroadcastModel.createBroadcast(ttile, msg, JSON.stringify(contactList));
             } else {
                 return httpResponse.badrequest(res, "Invalid type");
             }
@@ -55,6 +58,16 @@ const BroadcastService = {
     updateBroadcast: async (id, numberList, isComplete) => {
         try {
             await BroadcastModel.updateBroadcast(id, numberList, isComplete);
+        } catch (err) {
+            console.log(err)
+            return httpResponse.error(res, "Internal Server Error");
+        }
+    },
+
+    getAllBroadcast: async () => {
+        try {
+            const broadcasts = await BroadcastModel.getAllBroadcast();
+            return broadcasts;
         } catch (err) {
             console.log(err)
             return httpResponse.error(res, "Internal Server Error");
