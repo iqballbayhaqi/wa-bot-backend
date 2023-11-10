@@ -84,6 +84,34 @@ const BroadcastModel = {
             console.error(err);
             throw err;
         }
+    },
+
+    getBroadcastDetail: async (id) => {
+        try {
+            const request = pool.request();
+
+            request.input('id', sql.Int, id);
+
+            const result = await request.query(`
+                SELECT * FROM Broadcast WHERE id = @id
+            `);
+
+            const broadcast = result.recordset.map(broadcast => {
+                return {
+                    id: broadcast.id,
+                    title: broadcast.title,
+                    message: broadcast.message,
+                    createdAt: broadcast.createdTime,
+                    totalMessage: JSON.parse(broadcast.numberList).length,
+                    isComplete: broadcast.isComplete,
+                }
+            });
+
+            return broadcast[0];
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
     }
 }
 

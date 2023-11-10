@@ -72,7 +72,18 @@ const BroadcastService = {
             console.log(err)
             return httpResponse.error(res, "Internal Server Error");
         }
+    },
+
+    getBroadcastDetail: async (id) => {
+        try {
+            const broadcast = await BroadcastModel.getBroadcastDetail(id);
+            return broadcast;
+        } catch (err) {
+            console.log(err)
+            return httpResponse.error(res, "Internal Server Error");
+        }
     }
+    
 }
 
 module.exports = BroadcastService;

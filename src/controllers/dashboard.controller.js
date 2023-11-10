@@ -5,8 +5,8 @@ const DashboardController = {
     getDashboardInformation: async (req, res) => {
         const { startDate, endDate } = req.query;
 
-        const start = new Date(parseInt(startDate ?? 0)).toISOString().slice(0, 10);
-        const end = new Date(parseInt(endDate ?? 0)).toISOString().slice(0, 10);
+        const start = new Date(parseInt(startDate ?? '0')).toISOString().slice(0, 10);
+        const end = new Date(parseInt(endDate ?? '0')).toISOString().slice(0, 10);
 
         try {
             const dashboardDetail = await DashboardService.getDashboardInformation(start, end);

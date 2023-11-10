@@ -106,7 +106,7 @@ const TicketModel = {
             request.input('id', sql.Int, ticketId);
 
             const result = await request.query(`
-                SELECT id, ticketNumber, phoneNumber, department, category, status, chatHistory
+                SELECT id, ticketNumber, whatsappName, phoneNumber, department, category, status, chatHistory
                 FROM Ticket WHERE id = @id
             `);
 

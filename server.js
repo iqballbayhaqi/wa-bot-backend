@@ -4,14 +4,18 @@ const http = require("http");
 const cron = require("node-cron");
 const cors = require("cors");
 const initSocket = require("./src/socket/socket");
-const { Server } = require("socket.io");
 require("dotenv").config();
 
 const express = require("express");
 const app = express();
 
 // allow cors for websockets
-app.use(cors());
+app.use(cors(
+  {
+    origin: "http://localhost:4000",
+    credentials: true
+  }
+));
 
 const server = http.createServer(app);
 

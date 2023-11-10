@@ -53,7 +53,6 @@ const UserController = {
                 return httpResponse.unauthorized(res, 'Nik not found or wrong password');
             }
 
-
             // Check if password is correct
             const isAuthentic = await UserService.isAuthentic(password, user.hashPassword);
             if (!isAuthentic) {
@@ -69,8 +68,8 @@ const UserController = {
             }
 
             // Generate token
-            const accessToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1h' });
-            const refreshToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '2h' });
+            const accessToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '30s' });
+            const refreshToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1m' });
 
             return httpResponse.success(res, { accessToken, refreshToken });
         } catch (err) {
@@ -82,6 +81,40 @@ const UserController = {
             }
             if (err.statusCode === 401) {
                 return httpResponse.unauthorized(res, err.message);
+            }
+            return httpResponse.error(res, "Internal Server Error");
+        }
+    },
+
+    refreshToken: async (req, res) => {
+        try {
+            const { refreshToken } = req.body;
+
+            // Check if refresh token is valid
+            jwt.verify(refreshToken, process.env.PUBLIC_JWT_SECRET);
+            // Get user data from refresh token
+            const userData = jwt.decode(refreshToken);
+
+            const newUserData = {
+                id: userData.id,
+                nik: userData.nik,
+                name: userData.name,
+                departmentCode: userData.departmentCode,
+                role: userData.role
+            }
+
+            // Generate new access token
+            const accessToken = jwt.sign(newUserData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '30s' });
+            const newRefreshToken = jwt.sign(newUserData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1m' });
+
+            return httpResponse.success(res, { accessToken, refreshToken: newRefreshToken });
+        } catch (err) {
+            console.log(err)
+            if (err.name === 'TokenExpiredError') {
+                return httpResponse.unauthorized(res, 'Refresh token expired');
+            }
+            if (err.name === 'JsonWebTokenError') {
+                return httpResponse.unauthorized(res, 'Invalid refresh token');
             }
             return httpResponse.error(res, "Internal Server Error");
         }

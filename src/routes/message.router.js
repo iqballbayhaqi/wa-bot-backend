@@ -1,11 +1,13 @@
 const express = require('express');
 const MessageController = require('../controllers/message.controller');
+const verifyAgentToken = require('../middlewares/verifyAgentToken');
 
 const router = express.Router();
 
-router.get("/broadcast", MessageController.getBroadcasts)
+router.post('/send', verifyAgentToken, MessageController.sendMessage);
 
-router.post('/send', MessageController.sendMessage);
-router.post('/broadcast', MessageController.broadcastMessage);
+router.get("/broadcast", verifyAgentToken, MessageController.getBroadcasts);
+router.get("/broadcast/:id", verifyAgentToken, MessageController.getBroadcastDetail);
+router.post('/broadcast', verifyAgentToken, MessageController.broadcastMessage);
 
 module.exports = router;
