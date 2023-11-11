@@ -49,6 +49,13 @@ const httpResponse = {
             message,
         });
     },
+
+    notallowed: (res, message) => {
+        return res.status(403).json({
+            status: 'error',
+            message,
+        });
+    },
 }
 
 module.exports = httpResponse;

@@ -68,8 +68,8 @@ const UserController = {
             }
 
             // Generate token
-            const accessToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '30s' });
-            const refreshToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1m' });
+            const accessToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '15m' });
+            const refreshToken = jwt.sign(userData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1h' });
 
             return httpResponse.success(res, { accessToken, refreshToken });
         } catch (err) {
@@ -104,8 +104,8 @@ const UserController = {
             }
 
             // Generate new access token
-            const accessToken = jwt.sign(newUserData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '30s' });
-            const newRefreshToken = jwt.sign(newUserData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1m' });
+            const accessToken = jwt.sign(newUserData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '15m' });
+            const newRefreshToken = jwt.sign(newUserData, process.env.PUBLIC_JWT_SECRET, { expiresIn: '1h' });
 
             return httpResponse.success(res, { accessToken, refreshToken: newRefreshToken });
         } catch (err) {

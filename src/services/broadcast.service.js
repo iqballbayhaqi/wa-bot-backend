@@ -1,15 +1,20 @@
 // const axios = require('axios');
 const BroadcastModel = require('../models/broadcast.model');
 const ContactService = require('./contact.service');
-const TicketService = require('./ticket.service');
+const httpResponse = require('../helpers/httpResponse');
 
 const BroadcastService = {
     createBroadcast: async (title, msg, type, selected) => {
         try {
             if (type == "all") {
                 console.log("Broadcasting to all")
+                const contactList = await ContactService.getAllContact().map(contact => { return { phoneNumber: contact.phoneNumber, isSent: false } });
+                await BroadcastModel.createBroadcast(title, msg, JSON.stringify(contactList));
+            }
+            else if (type == "contact") {
+                console.log("Broadcasting to selected contact")
 
-                const contactList = await selected.map(contact => { return { phoneNumber: contact, isSent: false } });
+                const contactList = selected.map(contact => { return { phoneNumber: contact, isSent: false } });
                 await BroadcastModel.createBroadcast(title, msg, JSON.stringify(contactList));
 
             } else if (type == "department") {
@@ -36,12 +41,10 @@ const BroadcastService = {
                 const contactList = await unique.map(number => { return { phoneNumber: number, isSent: false } });
 
                 await BroadcastModel.createBroadcast(ttile, msg, JSON.stringify(contactList));
-            } else {
-                return httpResponse.badrequest(res, "Invalid type");
             }
         } catch (err) {
             console.log(err)
-            return httpResponse.error(res, "Internal Server Error");
+            throw err;
         }
     },
 
@@ -51,7 +54,7 @@ const BroadcastService = {
             return broadcast;
         } catch (err) {
             console.log(err)
-            return httpResponse.error(res, "Internal Server Error");
+            throw err;
         }
     },
 
@@ -60,7 +63,7 @@ const BroadcastService = {
             await BroadcastModel.updateBroadcast(id, numberList, isComplete);
         } catch (err) {
             console.log(err)
-            return httpResponse.error(res, "Internal Server Error");
+            throw err;
         }
     },
 
@@ -70,7 +73,7 @@ const BroadcastService = {
             return broadcasts;
         } catch (err) {
             console.log(err)
-            return httpResponse.error(res, "Internal Server Error");
+            throw err;
         }
     },
 
@@ -80,10 +83,10 @@ const BroadcastService = {
             return broadcast;
         } catch (err) {
             console.log(err)
-            return httpResponse.error(res, "Internal Server Error");
+            throw err;
         }
     }
-    
+
 }
 
 module.exports = BroadcastService;

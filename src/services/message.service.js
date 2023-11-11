@@ -212,10 +212,7 @@ const MessageService = {
                         await MessageService.sendMessage(chatHistory.to, `Nomor tiket pengaduan anda adalah ${ticket.ticketNumber}. Silahkan tunggu konfirmasi paling lama dalam waktu 14 hari.`);
                         await TicketService.updateTicketChatState(ticket.id, 5);
                         await TicketService.updateTicketStatus(ticket.id, TICKET_STATUS.PENDING);
-                        // await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + (14 * 24 * 60 * 60 * 1000) + (1000 * 60 * 60 * 7)), 0);
-                        await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + (1 * 1 * 1 * 60 * 1000) + (1000 * 60 * 60 * 7)), 0);
-                    } else {
-                        console.log("Pertanyaan salah")
+                        await TicketService.updateTicketExpiration(ticket.id, new Date(Date.now() + (14 * 24 * 60 * 60 * 1000) + (1000 * 60 * 60 * 7)), 0);
                     }
                 }
                 break;

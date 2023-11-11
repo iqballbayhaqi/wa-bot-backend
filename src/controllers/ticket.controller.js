@@ -36,7 +36,7 @@ const TicketController = {
     moveTicket: async (req, res) => {
         try {
             const { id, departmentId, categoryId } = req.body;
-            const lastModifiedBy = req.user.id;
+            const lastModifiedBy = req.userId;
 
             const ticketData = { id, departmentId, categoryId };
             await validate(moveTicketSchema, ticketData);
@@ -72,6 +72,7 @@ const TicketController = {
             if (err.statusCode === 404) {
                 return httpResponse.notfound(res, err.message);
             }
+            console.log(err)
             return httpResponse.error(res, "Internal Server Error");
         }
     }

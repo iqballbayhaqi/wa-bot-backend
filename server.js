@@ -41,6 +41,7 @@ const MessageService = require("./src/services/message.service");
 const contactRouter = require("./src/routes/contact.router");
 const broadcastJob = require("./src/cronjobs/broadcast.cronjob");
 const ContactService = require("./src/services/contact.service");
+const ConfigurationService = require("./src/services/configuration.service");
 
 app.use("/api/v1", departmentRouter);
 app.use("/api/v1", categoryRouter);
@@ -68,7 +69,7 @@ app.use((err, req, res, next) => {
 
 app.use(errorHandler);
 
-cron.schedule("* * * * * ", async function () {
+cron.schedule("0 * * * *", async function () {
   console.log("running a task every minute");
   const expiredTickets = await TicketService.getExpiredTickets();
 
@@ -80,7 +81,7 @@ cron.schedule("* * * * * ", async function () {
     } else {
       await TicketService.extendExpiredTicket(
         ticket.id,
-        ticket.expiryTime + 60 * 1000
+        ticket.expiryTime + 14 * 24 * 60 * 60 * 1000
       );
 
       await MessageService.sendMessage(
@@ -89,21 +90,17 @@ cron.schedule("* * * * * ", async function () {
       );
     }
   }
-
-  console.log(expiredTickets);
 });
 
-// Keep in database as config
-let broadcastQuota = 5;
-let sentMessages = 0;
-let maximumBroadcastQuota = 300;
+cron.schedule("0 * * * *", async function () {
+  const configuration = await ConfigurationService.getBroadcastConfig();
+  const broadcastQuota = configuration.find(config => config.key === 'broadcast_quota').value;
+  const sentMessages = configuration.find(config => config.key === 'sent_broadcast_message').value;
+  const maximumBroadcastQuota = configuration.find(config => config.key === 'max_broadcast_quota').value;
 
-// run task every 1 minute
-cron.schedule("* * * * *", async function () {
-  let { newQuota, sentMsg } = await broadcastJob(broadcastQuota, sentMessages, maximumBroadcastQuota);
-  console.log(newQuota, sentMsg)
-  broadcastQuota = newQuota;
-  sentMessages = sentMsg;
+  let { newQuota, sentMsg } = await broadcastJob(parseInt(broadcastQuota, 10), parseInt(sentMessages, 10), parseInt(maximumBroadcastQuota, 10));
+
+  await ConfigurationService.updateBroadcastConfig(newQuota.toString(), sentMsg.toString());
 });
 
 initSocket(server);
