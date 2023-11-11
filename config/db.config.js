@@ -1,10 +1,12 @@
-﻿module.exports = {
-    user: 'admin',
-    password: 'admin123',
-    server: 'localhost',
-    database: 'customer-service',
+﻿require('dotenv').config();
+
+module.exports = {
+    user: process.env.PUBLIC_DB_USER,
+    password: process.env.PUBLIC_DB_PASSWORD,
+    server: process.env.PUBLIC_DB_HOST,
+    database: process.env.PUBLIC_DB_NAME,
     options: {
-        port: 1433,
+        port: Number(process.env.PUBLIC_DB_PORT),
         trustServerCertificate: true,
     },
     pool: {

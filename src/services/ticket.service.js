@@ -212,6 +212,16 @@ const TicketService = {
         return `#${year}${month}${day}-${numberOfTicketsFixed}`;
     },
 
+    getOpenTicketCount: async () => {
+        try {
+            const count = await TicketModel.getOpenTicketCount();
+            return count;
+        } catch (err) {
+            console.error('Error in TicketService.getOpenTicketCount:', err);
+            throw err;
+        }
+    }
+
 
 };
 

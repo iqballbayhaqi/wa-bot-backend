@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.get('/tickets', verifyAgentToken([SUPER_ADMIN, AGENT]), TicketController.getAllTickets);
 router.get('/ticket/:id', verifyAgentToken([SUPER_ADMIN, AGENT]), TicketController.getTicketById);
+router.get('/ticketcount', verifyAgentToken([SUPER_ADMIN, AGENT]), TicketController.getOpenTicketCount);
 router.post('/moveTicket', verifyAgentToken([SUPER_ADMIN, AGENT]), TicketController.moveTicket);
 
 module.exports = router;

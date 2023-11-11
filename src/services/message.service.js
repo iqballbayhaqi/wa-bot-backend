@@ -122,7 +122,6 @@ const MessageService = {
     },
 
     processIncomingMessage: async (contact, chatHistory, ticket) => {
-        console.log("chatState", ticket.chatState)
         switch (ticket.chatState) {
             case 1:
                 await MessageService.sendMessage(chatHistory.from, 'Apakah anda karyawan Best Agro International? [Ya/Tidak]');

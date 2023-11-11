@@ -21,6 +21,10 @@ const TicketController = {
         try {
             const { id } = req.params;
 
+            if (!id) {
+                return httpResponse.badrequest(res, "Invalid ticket id");
+            }
+
             const ticket = await TicketService.getTicketById(id);
 
             if (!ticket) {
@@ -73,6 +77,16 @@ const TicketController = {
                 return httpResponse.notfound(res, err.message);
             }
             console.log(err)
+            return httpResponse.error(res, "Internal Server Error");
+        }
+    },
+
+    getOpenTicketCount: async (req, res) => {
+        try {
+            const count = await TicketService.getOpenTicketCount();
+
+            return httpResponse.success(res, count);
+        } catch (err) {
             return httpResponse.error(res, "Internal Server Error");
         }
     }

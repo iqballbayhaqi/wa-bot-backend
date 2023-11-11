@@ -405,8 +405,6 @@ const TicketModel = {
             request.input('startDate', sql.Date, startDate);
             request.input('endDate', sql.Date, endDate);
 
-            console.log(startDate, endDate)
-
             const result = await request.query(`
             SELECT
                 department.id AS departmentId,
@@ -430,8 +428,6 @@ const TicketModel = {
                 COUNT(CASE WHEN status IN ('OPEN', 'PENDING', 'CLOSED') AND (createdTime IS NULL OR (createdTime >= @startDate AND createdTime <= @endDate)) THEN 1 END) AS totalTickets
             FROM Ticket
             WHERE department IS NULL;
-
-
             `);
 
             return result.recordsets[0];
@@ -526,6 +522,23 @@ const TicketModel = {
                     category: ticket.category,
                 }
             });
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    },
+
+    getOpenTicketCount: async () => {
+        try {
+            const request = pool.request();
+
+            const result = await request.query(`
+                SELECT COUNT(*) AS openTicketCount FROM Ticket
+                WHERE status = 'OPEN'
+                AND modifyStatus != 'D'
+            `);
+
+            return result.recordset[0].openTicketCount;
         } catch (err) {
             console.error(err);
             throw err;
