@@ -70,7 +70,7 @@ app.use((err, req, res, next) => {
 app.use(errorHandler);
 
 cron.schedule("0 * * * *", async function () {
-  console.log("running a task every minute");
+  console.log("Checking for expired tickets...");
   const expiredTickets = await TicketService.getExpiredTickets();
 
   for (let i = 0; i < expiredTickets.length; i++) {
@@ -86,13 +86,14 @@ cron.schedule("0 * * * *", async function () {
 
       await MessageService.sendMessage(
         ticket.phoneNumber,
-        "Your ticket has been extended for 1 minute"
+        "Silahkan tunggu konfirmasi dari kami, tiket complain anda diperpanjang selama 14 hari"
       );
     }
   }
 });
 
 cron.schedule("0 * * * *", async function () {
+  console.log("Running broadcast job...");
   const configuration = await ConfigurationService.getBroadcastConfig();
   const broadcastQuota = configuration.find(config => config.key === 'broadcast_quota').value;
   const sentMessages = configuration.find(config => config.key === 'sent_broadcast_message').value;
